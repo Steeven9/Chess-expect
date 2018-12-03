@@ -2,10 +2,19 @@
 ;; about the language level of this file in a form that our tools can easily process.
 #reader(lib "htdp-advanced-reader.ss" "lang")((modname chess-expect) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #t #t none #f () #f)))
 ; PF1 final project: chess-expect!
+; Main file
 ; Author: Stefano Taillefert
+
+;;;;;;;;;;;;;;;;;;;;;;;;;
+; Libraries
+;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (require 2htdp/image)
 (require 2htdp/universe)
+
+(require "pieces.rkt")
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Data definition
@@ -40,9 +49,6 @@
 
 ; A black tile
 (define B-TILE (square (/ WIDTH 8) 'solid 'black))
-
-
-; TODO: img of every piece ("img/thing.png")
 
 
 
