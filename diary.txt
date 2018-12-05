@@ -1,0 +1,11 @@
+Dec 02
+Created files and began to think about how to structure the data: world state, cursors for players etc.
+
+Dec 03
+Added pieces images and began drawing the chessboard. Slightly bugged.
+
+Dec 04
+Changed chessboard color for readability
+
+Dec 05
+Rescaled pieces images to fit on tiles and optimized image placing
