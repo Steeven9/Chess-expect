@@ -214,9 +214,12 @@
 ; handle-key: World Key -> World
 ; Handles keypresses.
 (define (handle-key w key)
-  (cond [(key=? key "escape") (draw-board INITIAL-WORLD)]
-        [(and (key=? key "w") (world-mov1 w)) (draw-board INITIAL-WORLD)]
-        [(and (key=? key "up") (world-mov2 w)) (draw-board INITIAL-WORLD)]
+  (cond [(key=? key "escape")
+         (draw-world INITIAL-WORLD)]
+        [(and (key=? key "w") (world-mov1 w))
+         (draw-world (struct-copy world w [pos1x (add1 (world-pos1x w))]))]
+        [(and (key=? key "up") (world-mov2 w))
+         (draw-world w)]
         [else w]))
   
 
@@ -224,7 +227,6 @@
 ; Launches big-bang.
 (define (main _)
   (big-bang INITIAL-WORLD
-    [state #true]
     [name "Chess-expect!"]
     [to-draw draw-world]
     [on-key handle-key]))
