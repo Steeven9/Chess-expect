@@ -9,3 +9,7 @@ Changed chessboard color for readability.
 
 Dec 05
 Rescaled pieces images to fit on tiles, optimized image placement, rewrote drawing functions, improved data structure.
+Added keyboard input.
+
+Dec 06
+Added end-turn keys for both players.

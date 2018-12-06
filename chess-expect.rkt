@@ -214,13 +214,36 @@
 ; handle-key: World Key -> World
 ; Handles keypresses.
 (define (handle-key w key)
-  (cond [(key=? key "escape")
-         (draw-world INITIAL-WORLD)]
-        [(and (key=? key "w") (world-mov1 w))
-         (draw-world (struct-copy world w [pos1x (add1 (world-pos1x w))]))]
-        [(and (key=? key "up") (world-mov2 w))
-         (draw-world w)]
-        [else w]))
+  (cond
+    ; Reset
+    [(key=? key "escape")
+     INITIAL-WORLD]
+    ; Player 1 movement
+    [(and (key=? key "w") (world-mov1 w) (< 0 (world-pos1y w)))
+     (struct-copy world w [pos1y (- (world-pos1y w) 1)])]
+    [(and (key=? key "s") (world-mov1 w) (> 7 (world-pos1y w)))
+     (struct-copy world w [pos1y (+ (world-pos1y w) 1)])]
+    [(and (key=? key "a") (world-mov1 w) (< 0 (world-pos1x w)))
+     (struct-copy world w [pos1x (- (world-pos1x w) 1)])]
+    [(and (key=? key "d") (world-mov1 w) (> 7 (world-pos1x w)))
+     (struct-copy world w [pos1x (+ (world-pos1x w) 1)])]
+    ; Player 1 end turn
+    [(and (key=? key "shift") (world-mov1 w))
+     (struct-copy world w [mov1 #false] [mov2 #true])]
+    ; Player 2 movement
+    [(and (key=? key "up") (world-mov2 w) (< 0 (world-pos2y w)))
+     (struct-copy world w [pos2y (- (world-pos2y w) 1)])]
+    [(and (key=? key "down") (world-mov2 w) (> 7 (world-pos2y w)))
+     (struct-copy world w [pos2y (+ (world-pos2y w) 1)])]
+    [(and (key=? key "left") (world-mov2 w) (< 0 (world-pos2x w)))
+     (struct-copy world w [pos2x (- (world-pos2x w) 1)])]
+    [(and (key=? key "right") (world-mov2 w) (> 7 (world-pos2x w)))
+     (struct-copy world w [pos2x (+ (world-pos2x w) 1)])]
+    ; Player 2 end turn
+    [(and (key=? key "\r") (world-mov2 w))
+     (struct-copy world w [mov1 #true] [mov2 #false])]
+    ; Nothing
+    [else w]))
   
 
 ; main: Nothing -> Nothing
