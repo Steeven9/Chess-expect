@@ -24,10 +24,6 @@
 (require 2htdp/image)
 (require 2htdp/universe)
 
-(require "config.rkt")
-(require "pieces.rkt")
-
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Data definition
@@ -36,68 +32,74 @@
 ; A Coord is a NonNegativeInteger between 0 and 7 (included).
 ; Interpretation: a coordinate on the chessboard.
 
-; A World is a (make-world scene pos1 pos2 mov1 mov2) where:
+; A World is a (make-world pieces pos1x pos1y pos2x pos2y turn pick1 pick2) where:
 ; - pieces is a List<Piece>,
-; - pos1, pos2 are Coord,
-; - mov1, mov2 are Boolean.
+; - pos1x, pos1y, pos2x, pos2y are Coord,
+; - turn is either 1 or 2,
+; - pick1, pick2 are Boolean.
 ; Interpretation: the world status with the position of the two players'
-; (white is 1 and black is 2) pointers and movement status (is he moving?).
-(define-struct world [pieces pos1x pos1y pos2x pos2y mov1 mov2])
+; (white is 1 and black is 2) pointers and movement status.
+(define-struct world [pieces pos1x pos1y pos2x pos2y turn pick1 pick2])
 
-; A Piece is a (make-piece image x y) where:
-; - image is an Image,
+; A Piece is a (make-piece color type x y) where:
+; - color, type are Strings,
 ; - x, y are Coord.
-; Interpretation: a piece with its sprite and coordinates.
-(define-struct piece [image x y])
-
+; Interpretation: a piece with its data and coordinates.
+(define-struct piece [color type x y])
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Constants
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
+; Screen width
+(define WIDTH 800)
+
+; Screen height
+(define HEIGHT 800)
+
 ; The default piece list
-(define PIECE-LIST (list (make-piece W-PAWN 0 6)
-                         (make-piece W-PAWN 1 6)
-                         (make-piece W-PAWN 2 6)
-                         (make-piece W-PAWN 3 6)
-                         (make-piece W-PAWN 4 6)
-                         (make-piece W-PAWN 5 6)
-                         (make-piece W-PAWN 6 6)
-                         (make-piece W-PAWN 7 6)
-                         (make-piece W-ROOK 0 7)
-                         (make-piece W-KNIGHT 1 7)
-                         (make-piece W-BISHOP 2 7)
-                         (make-piece W-KING 3 7)
-                         (make-piece W-QUEEN 4 7)
-                         (make-piece W-BISHOP 5 7)
-                         (make-piece W-KNIGHT 6 7)
-                         (make-piece W-ROOK 7 7)
-                         (make-piece B-PAWN 0 1)
-                         (make-piece B-PAWN 1 1)
-                         (make-piece B-PAWN 2 1)
-                         (make-piece B-PAWN 3 1)
-                         (make-piece B-PAWN 4 1)
-                         (make-piece B-PAWN 5 1)
-                         (make-piece B-PAWN 6 1)
-                         (make-piece B-PAWN 7 1)
-                         (make-piece B-ROOK 0 0)
-                         (make-piece B-KNIGHT 1 0)
-                         (make-piece B-BISHOP 2 0)
-                         (make-piece B-KING 3 0)
-                         (make-piece B-QUEEN 4 0)
-                         (make-piece B-BISHOP 5 0)
-                         (make-piece B-KNIGHT 6 0)
-                         (make-piece B-ROOK 7 0)))
+(define PIECE-LIST (list (make-piece "white" "Pawn" 0 6)
+                         (make-piece "white" "Pawn" 1 6)
+                         (make-piece "white" "Pawn" 2 6)
+                         (make-piece "white" "Pawn" 3 6)
+                         (make-piece "white" "Pawn" 4 6)
+                         (make-piece "white" "Pawn" 5 6)
+                         (make-piece "white" "Pawn" 6 6)
+                         (make-piece "white" "Pawn" 7 6)
+                         (make-piece "white" "Rook" 0 7)
+                         (make-piece "white" "Knight" 1 7)
+                         (make-piece "white" "Bishop" 2 7)
+                         (make-piece "white" "King" 3 7)
+                         (make-piece "white" "Queen" 4 7)
+                         (make-piece "white" "Bishop" 5 7)
+                         (make-piece "white" "Knight" 6 7)
+                         (make-piece "white" "Rook" 7 7)
+                         (make-piece "black" "Pawn" 0 1)
+                         (make-piece "black" "Pawn" 1 1)
+                         (make-piece "black" "Pawn" 2 1)
+                         (make-piece "black" "Pawn" 3 1)
+                         (make-piece "black" "Pawn" 4 1)
+                         (make-piece "black" "Pawn" 5 1)
+                         (make-piece "black" "Pawn" 6 1)
+                         (make-piece "black" "Pawn" 7 1)
+                         (make-piece "black" "Rook" 0 0)
+                         (make-piece "black" "Knight" 1 0)
+                         (make-piece "black" "Bishop" 2 0)
+                         (make-piece "black" "King" 3 0)
+                         (make-piece "black" "Queen" 4 0)
+                         (make-piece "black" "Bishop" 5 0)
+                         (make-piece "black" "Knight" 6 0)
+                         (make-piece "black" "Rook" 7 0)))
                             
 
 ; Initial empty world.
-; Starting positions are the king for p1 and the topmost black tile for black,
-; which is used to color the chessboard. After draw-map, it will be set to its king too.
+; Starting positions are the king's coordinates, player1 (white) moves first.
 (define INITIAL-WORLD (make-world PIECE-LIST
                                   3 7
                                   3 0
-                                  #true
+                                  1
+                                  #false
                                   #false))
 
 ; A white tile
@@ -109,12 +111,14 @@
 ; The white cursor
 (define W-CURSOR (square (/ WIDTH 8) 'outline (pen 'red 5 "dot" "round" "bevel")))
 
+; The white active cursor (when moving a piece)
+(define W-CURSOR-ACTIVE (square (/ WIDTH 8) 'outline (pen 'red 5 "solid" "round" "round")))
+
 ; The black cursor
 (define B-CURSOR (square (/ WIDTH 8) 'outline (pen 'blue 5 "dot" "round" "bevel")))
 
-
-; Nate's solution for the pieces list
-(define test (list (list "1" 1) (list "2" 2) (list "3" 3)))
+; The black active cursor (when moving a piece)
+(define B-CURSOR-ACTIVE (square (/ WIDTH 8) 'outline (pen 'blue 5 "solid" "round" "round")))
 
 
 
@@ -144,25 +148,30 @@
         [else (draw-board (add1 y) (draw-board-line 0 y img))]))
 
 
-; draw-cursors: Coord x4 Image -> Image
+; draw-cursors: World Image -> Image
 ; Draws the players cursors on a given image.
-(define (draw-cursors x1 y1 x2 y2 img)
-  (place-image W-CURSOR
-               (tile-x x1)
-               (tile-y y1)
-               (place-image B-CURSOR
-                            (tile-x x2)
-                            (tile-y y2)
+(define (draw-cursors w img)
+  (place-image (if (= 1 (world-turn w))
+                   W-CURSOR-ACTIVE
+                   W-CURSOR)
+               (tile-x (world-pos1x w))
+               (tile-y (world-pos1y w))
+               (place-image (if (= 2 (world-turn w))
+                                B-CURSOR-ACTIVE
+                                B-CURSOR)
+                            (tile-x (world-pos2x w))
+                            (tile-y (world-pos2y w))
                             img)))
 
 
 ; draw-piece: Piece Image -> Image
 ; Draws a single piece on a given image.
 (define (draw-piece p img)
-  (place-image (piece-image p)
-               (tile-x (piece-x p))
-               (tile-y (piece-y p))
-               img))
+  (local [(define source (string-append "img/" (piece-color p) (piece-type p) ".png"))]
+    (place-image (bitmap/file source)
+                 (tile-x (piece-x p))
+                 (tile-y (piece-y p))
+                 img)))
 
 
 ; draw-pieces: List<Piece> Image -> Image
@@ -172,16 +181,25 @@
         [else (draw-pieces (rest pl) (draw-piece (first pl) img))]))
 
 
+; draw-text: World Image -> Image
+; Prints the text according to the given world.
+(define (draw-text w img)
+  (place-image (if (= 1 (world-turn w))
+                   (text "Player 1 moving" 24 'black)
+                   (text "Player 2 moving" 24 'black))
+               100
+               850
+               img))
+
+
 ; draw-world: World -> Image
 ; Draws the chessboard, cursors and pieces.
 (define (draw-world w)
-  (draw-pieces (world-pieces w)
-               (draw-cursors (world-pos1x w)
-                             (world-pos1y w)
-                             (world-pos2x w)
-                             (world-pos2y w)
-                             (draw-board 0 (empty-scene WIDTH HEIGHT)))))
-
+  (draw-text w
+             (draw-pieces (world-pieces w)
+                          (draw-cursors w
+                                        (draw-board 0
+                                                    (empty-scene WIDTH (+ 100 HEIGHT)))))))
 
 
 ;;;; Calculation functions ;;;;
@@ -208,7 +226,6 @@
 (check-expect (tile-y 6) 650)
 
 
-
 ;;;; Big-bang and handlers ;;;;
 
 ; handle-key: World Key -> World
@@ -219,29 +236,28 @@
     [(key=? key "escape")
      INITIAL-WORLD]
     ; Player 1 movement
-    [(and (key=? key "w") (world-mov1 w) (< 0 (world-pos1y w)))
+    [(and (key=? key "w") (= 1 (world-turn w)) (< 0 (world-pos1y w)))
      (struct-copy world w [pos1y (- (world-pos1y w) 1)])]
-    [(and (key=? key "s") (world-mov1 w) (> 7 (world-pos1y w)))
+    [(and (key=? key "s") (= 1 (world-turn w)) (> 7 (world-pos1y w)))
      (struct-copy world w [pos1y (+ (world-pos1y w) 1)])]
-    [(and (key=? key "a") (world-mov1 w) (< 0 (world-pos1x w)))
+    [(and (key=? key "a") (= 1 (world-turn w)) (< 0 (world-pos1x w)))
      (struct-copy world w [pos1x (- (world-pos1x w) 1)])]
-    [(and (key=? key "d") (world-mov1 w) (> 7 (world-pos1x w)))
+    [(and (key=? key "d") (= 1 (world-turn w)) (> 7 (world-pos1x w)))
      (struct-copy world w [pos1x (+ (world-pos1x w) 1)])]
-    ; Player 1 end turn
-    [(and (key=? key "shift") (world-mov1 w))
-     (struct-copy world w [mov1 #false] [mov2 #true])]
     ; Player 2 movement
-    [(and (key=? key "up") (world-mov2 w) (< 0 (world-pos2y w)))
+    [(and (key=? key "up") (= 2 (world-turn w)) (< 0 (world-pos2y w)))
      (struct-copy world w [pos2y (- (world-pos2y w) 1)])]
-    [(and (key=? key "down") (world-mov2 w) (> 7 (world-pos2y w)))
+    [(and (key=? key "down") (= 2 (world-turn w)) (> 7 (world-pos2y w)))
      (struct-copy world w [pos2y (+ (world-pos2y w) 1)])]
-    [(and (key=? key "left") (world-mov2 w) (< 0 (world-pos2x w)))
+    [(and (key=? key "left") (= 2 (world-turn w)) (< 0 (world-pos2x w)))
      (struct-copy world w [pos2x (- (world-pos2x w) 1)])]
-    [(and (key=? key "right") (world-mov2 w) (> 7 (world-pos2x w)))
+    [(and (key=? key "right") (= 2 (world-turn w)) (> 7 (world-pos2x w)))
      (struct-copy world w [pos2x (+ (world-pos2x w) 1)])]
-    ; Player 2 end turn
-    [(and (key=? key "\r") (world-mov2 w))
-     (struct-copy world w [mov1 #true] [mov2 #false])]
+    ; End turn (spacebar)
+    [(and (key=? key " ") (= 1 (world-turn w)))
+     (struct-copy world w [turn 2])]
+    [(and (key=? key " ") (= 2 (world-turn w)))
+     (struct-copy world w [turn 1])]
     ; Nothing
     [else w]))
   
