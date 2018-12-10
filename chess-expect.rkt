@@ -226,6 +226,21 @@
 (check-expect (tile-y 6) 650)
 
 
+;;;; List functions ;;;;
+
+; get-piece: List<Piece> Coord Coord -> Option<Piece>
+; Returns the piece at a given location or #false if there are none.
+(define (get-piece pl x y)
+  (cond [(empty? pl) #false]
+        [(and (= x (piece-x (first pl))) (= y (piece-y (first pl)))) (first pl)]
+        [else (get-piece (rest pl) x y)]))
+
+; Tests 
+(check-expect (get-piece PIECE-LIST 7 1) (make-piece "black" "Pawn" 7 1))
+(check-expect (get-piece PIECE-LIST 0 0) (make-piece "black" "Rook" 0 0))
+(check-expect (get-piece PIECE-LIST 4 5) #false)
+
+
 ;;;; Big-bang and handlers ;;;;
 
 ; handle-key: World Key -> World
