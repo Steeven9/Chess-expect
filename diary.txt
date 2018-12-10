@@ -17,3 +17,7 @@ Added end-turn keys for both players.
 Dec 07
 Added text indicating current turn, different cursors (active/inactive) and switched to a single end-turn key.
 Edited the pieces struct to be lighter and got rid of the pieces definition file.
+
+Dec 10
+Added pick system draft and some helper functions.
+Check-expect bug, solved making the struct transparents.

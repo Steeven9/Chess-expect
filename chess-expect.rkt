@@ -39,13 +39,13 @@
 ; - pick1, pick2 are Boolean.
 ; Interpretation: the world status with the position of the two players'
 ; (white is 1 and black is 2) pointers and movement status.
-(define-struct world [pieces pos1x pos1y pos2x pos2y turn pick1 pick2])
+(define-struct world [pieces pos1x pos1y pos2x pos2y turn pick1 pick2] #:transparent)
 
 ; A Piece is a (make-piece color type x y) where:
 ; - color, type are Strings,
 ; - x, y are Coord.
 ; Interpretation: a piece with its data and coordinates.
-(define-struct piece [color type x y])
+(define-struct piece [color type x y] #:transparent)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -59,38 +59,38 @@
 (define HEIGHT 800)
 
 ; The default piece list
-(define PIECE-LIST (list (make-piece "white" "Pawn" 0 6)
-                         (make-piece "white" "Pawn" 1 6)
-                         (make-piece "white" "Pawn" 2 6)
-                         (make-piece "white" "Pawn" 3 6)
-                         (make-piece "white" "Pawn" 4 6)
-                         (make-piece "white" "Pawn" 5 6)
-                         (make-piece "white" "Pawn" 6 6)
-                         (make-piece "white" "Pawn" 7 6)
-                         (make-piece "white" "Rook" 0 7)
-                         (make-piece "white" "Knight" 1 7)
-                         (make-piece "white" "Bishop" 2 7)
-                         (make-piece "white" "King" 3 7)
-                         (make-piece "white" "Queen" 4 7)
-                         (make-piece "white" "Bishop" 5 7)
-                         (make-piece "white" "Knight" 6 7)
-                         (make-piece "white" "Rook" 7 7)
-                         (make-piece "black" "Pawn" 0 1)
-                         (make-piece "black" "Pawn" 1 1)
-                         (make-piece "black" "Pawn" 2 1)
-                         (make-piece "black" "Pawn" 3 1)
-                         (make-piece "black" "Pawn" 4 1)
-                         (make-piece "black" "Pawn" 5 1)
-                         (make-piece "black" "Pawn" 6 1)
-                         (make-piece "black" "Pawn" 7 1)
-                         (make-piece "black" "Rook" 0 0)
-                         (make-piece "black" "Knight" 1 0)
-                         (make-piece "black" "Bishop" 2 0)
-                         (make-piece "black" "King" 3 0)
-                         (make-piece "black" "Queen" 4 0)
-                         (make-piece "black" "Bishop" 5 0)
-                         (make-piece "black" "Knight" 6 0)
-                         (make-piece "black" "Rook" 7 0)))
+(define PIECE-LIST (list (make-piece 'white 'Pawn 0 6)
+                         (make-piece 'white 'Pawn 1 6)
+                         (make-piece 'white 'Pawn 2 6)
+                         (make-piece 'white 'Pawn 3 6)
+                         (make-piece 'white 'Pawn 4 6)
+                         (make-piece 'white 'Pawn 5 6)
+                         (make-piece 'white 'Pawn 6 6)
+                         (make-piece 'white 'Pawn 7 6)
+                         (make-piece 'white 'Rook 0 7)
+                         (make-piece 'white 'Knight 1 7)
+                         (make-piece 'white 'Bishop 2 7)
+                         (make-piece 'white 'King 3 7)
+                         (make-piece 'white 'Queen 4 7)
+                         (make-piece 'white 'Bishop 5 7)
+                         (make-piece 'white 'Knight 6 7)
+                         (make-piece 'white 'Rook 7 7)
+                         (make-piece 'black 'Pawn 0 1)
+                         (make-piece 'black 'Pawn 1 1)
+                         (make-piece 'black 'Pawn 2 1)
+                         (make-piece 'black 'Pawn 3 1)
+                         (make-piece 'black 'Pawn 4 1)
+                         (make-piece 'black 'Pawn 5 1)
+                         (make-piece 'black 'Pawn 6 1)
+                         (make-piece 'black 'Pawn 7 1)
+                         (make-piece 'black 'Rook 0 0)
+                         (make-piece 'black 'Knight 1 0)
+                         (make-piece 'black 'Bishop 2 0)
+                         (make-piece 'black 'King 3 0)
+                         (make-piece 'black 'Queen 4 0)
+                         (make-piece 'black 'Bishop 5 0)
+                         (make-piece 'black 'Knight 6 0)
+                         (make-piece 'black 'Rook 7 0)))
                             
 
 ; Initial empty world.
@@ -185,8 +185,12 @@
 ; Prints the text according to the given world.
 (define (draw-text w img)
   (place-image (if (= 1 (world-turn w))
-                   (text "Player 1 moving" 24 'black)
-                   (text "Player 2 moving" 24 'black))
+                   (if (world-pick1 w)
+                       (text "Player 1 moving" 24 'black)
+                       (text "Player 1 to move" 24 'black))
+                   (if (world-pick2 w)
+                       (text "Player 2 moving" 24 'black)
+                       (text "Player 2 to move" 24 'black)))
                100
                850
                img))
@@ -236,8 +240,8 @@
         [else (get-piece (rest pl) x y)]))
 
 ; Tests 
-(check-expect (get-piece PIECE-LIST 7 1) (make-piece "black" "Pawn" 7 1))
-(check-expect (get-piece PIECE-LIST 0 0) (make-piece "black" "Rook" 0 0))
+(check-expect (get-piece PIECE-LIST 7 1) (make-piece 'black 'Pawn 7 1))
+(check-expect (get-piece PIECE-LIST 0 0) (make-piece 'black 'Rook 0 0))
 (check-expect (get-piece PIECE-LIST 4 5) #false)
 
 
@@ -268,11 +272,15 @@
      (struct-copy world w [pos2x (- (world-pos2x w) 1)])]
     [(and (key=? key "right") (= 2 (world-turn w)) (> 7 (world-pos2x w)))
      (struct-copy world w [pos2x (+ (world-pos2x w) 1)])]
-    ; End turn (spacebar)
-    [(and (key=? key " ") (= 1 (world-turn w)))
-     (struct-copy world w [turn 2])]
-    [(and (key=? key " ") (= 2 (world-turn w)))
-     (struct-copy world w [turn 1])]
+    ; Pick and drop piece (spacebar)
+    [(key=? key " ")
+     (cond [(= 1 (world-turn w))
+            (if (world-pick1 w)
+                (struct-copy world w [turn 2] [pick1 #false])
+                (struct-copy world w [pick1 #true]))]
+           [else (if (world-pick2 w)
+                     (struct-copy world w [turn 1] [pick2 #false])
+                     (struct-copy world w [pick2 #true]))])]
     ; Nothing
     [else w]))
   
@@ -281,6 +289,7 @@
 ; Launches big-bang.
 (define (main _)
   (big-bang INITIAL-WORLD
+    [state #true]
     [name "Chess-expect!"]
     [to-draw draw-world]
     [on-key handle-key]))
