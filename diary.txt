@@ -21,3 +21,11 @@ Edited the pieces struct to be lighter and got rid of the pieces definition file
 Dec 10
 Added pick system draft and some helper functions.
 Check-expect bug, solved making the struct transparents.
+Refined the cursors system to make it more clear.
+Added check on pickup to allow picking and on drop (movement-valid).
+THEY MOVE!!!
+
+Dec 11
+Added menu and handy text with key indications.
+Added tests.
+
