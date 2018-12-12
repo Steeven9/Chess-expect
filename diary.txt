@@ -29,3 +29,7 @@ Dec 11
 Added menu and handy text with key indications.
 Added tests.
 
+Dec 12
+Added readme draft
+Now you can't pick up opponent's pieces. Makes sense.
+Added eating function and win detection (eating the king).

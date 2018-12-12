@@ -32,10 +32,11 @@
 ; A Coord is a NonNegativeInteger between 0 and 7 (included).
 ; Interpretation: a coordinate on the chessboard.
 
-; A World is a (make-world pieces pos1x pos1y pos2x pos2y turn pick1 pick2, movingx, movingy) where:
+; A World is a (make-world pieces pos1x pos1y pos2x pos2y turn
+; pick1 pick2 movingx movingy) where:
 ; - pieces is a List<Piece>,
 ; - pos1x, pos1y, pos2x, pos2y are Coord,
-; - turn is either 0 (menu), 1 or 2,
+; - turn is either 0 (menu), 1, 2, 3 (p1 wins) or 4 (p2 wins),
 ; - pick1, pick2 are Boolean,
 ; - movingx, movingy are Coord.
 ; Interpretation: the world status with the pieces list, the position of the two
@@ -105,7 +106,7 @@
                                   0
                                   0))
 
-; Initial menu.
+; Initial menu
 (define INITIAL-WORLD-MENU (struct-copy world INITIAL-WORLD [turn 0]))
 
 ; A white tile
@@ -127,12 +128,25 @@
 (define B-CURSOR-ACTIVE (square (/ WIDTH 8) 'outline (pen 'blue 5 "dot" "round" "round")))
 
 ; The main menu text
-(define MENU-TEXT (overlay (above (text "Welcome to Chess-expect!" 32 'black)
-                                  (text "Press escape to begin." 24 'black))
-                           (rectangle 500 300 'solid 'white)))
+(define MENU-TEXT (above (overlay (text "Welcome to Chess-expect!" 32 'black)
+                                  (rectangle 500 125 'solid 'white))
+                         (overlay (text "Press escape to begin." 24 'black)
+                                  (rectangle 500 100 'solid 'white))))
 
 ; Copyright text at the bottom
-(define MENU-COPYRIGHT (text "Made by Stefano Taillefert - PF1 Final Project" 16 'black))
+(define MENU-COPYRIGHT (text "Stefano Taillefert - PF1 Final Project" 16 'black))
+
+; Victory image for player 1
+(define P1-WIN (above (overlay (text "Player 1 wins!" 32 'black)
+                               (rectangle 500 125 'solid 'white))
+                      (overlay (text "Yay! Press escape to restart." 24 'black)
+                               (rectangle 500 100 'solid 'white))))
+
+; Victory image for player 2
+(define P2-WIN (above (overlay (text "Player 2 wins!" 32 'black)
+                               (rectangle 500 125 'solid 'white))
+                      (overlay (text "Yay! Press escape to restart." 24 'black)
+                               (rectangle 500 100 'solid 'white))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -214,32 +228,43 @@
 ; draw-text: World Image -> Image
 ; Prints the text according to the given world.
 (define (draw-text w img)
-  (place-image/align (if (= 1 (world-turn w))
-                         (if (world-pick1 w)
-                             (text "Player 1: choose destination" 24 'black)
-                             (text "Player 1: choose piece" 24 'black))
-                         (if (world-pick2 w)
-                             (text "Player 2: choose destination" 24 'black)
-                             (text "Player 2: choose piece" 24 'black)))
-                     ; Bottom left
-                     25
-                     850
-                     "left"
-                     "middle"
-                     (place-image/align (above (if (= 1 (world-turn w))
-                                                   (if (world-pick1 w)
-                                                       (text "WASD to move, space to drop" 24 'black)
-                                                       (text "WASD to move, space to pick" 24 'black))
-                                                   (if (world-pick2 w)
-                                                       (text "Arrows to move, space to drop" 24 'black)
-                                                       (text "Arrows to move, space to pick" 24 'black)))
-                                               (text "Escape to reset" 24 'black))
-                                        ; Bottom right
-                                        775
-                                        850
-                                        "right"
-                                        "middle"
-                                        img)))
+  (cond [(= 3 (world-turn w))
+         (place-image P1-WIN
+                      400
+                      400
+                      img)]
+        [(= 4 (world-turn w))
+         (place-image P2-WIN
+                      400
+                      400
+                      img)]
+        [else
+         (place-image/align (if (= 1 (world-turn w))
+                                (if (world-pick1 w)
+                                    (text "Player 1: choose destination" 24 'black)
+                                    (text "Player 1: choose piece" 24 'black))
+                                (if (world-pick2 w)
+                                    (text "Player 2: choose destination" 24 'black)
+                                    (text "Player 2: choose piece" 24 'black)))
+                            ; Bottom left
+                            25
+                            850
+                            "left"
+                            "middle"
+                            (place-image/align (above (if (= 1 (world-turn w))
+                                                          (if (world-pick1 w)
+                                                              (text "WASD to move, space to drop" 24 'black)
+                                                              (text "WASD to move, space to pick" 24 'black))
+                                                          (if (world-pick2 w)
+                                                              (text "Arrows to move, space to drop" 24 'black)
+                                                              (text "Arrows to move, space to pick" 24 'black)))
+                                                      (text "Escape to reset" 24 'black))
+                                               ; Bottom right
+                                               775
+                                               850
+                                               "right"
+                                               "middle"
+                                               img))]))
 
 
 ; draw-world: World -> Image
@@ -301,14 +326,22 @@
 ; movement-valid: World Coord Coord -> Boolean
 ; Returns #true if the movement done by a piece is valid, #false otherwise.
 (define (movement-valid w)
-  ; Check if space is occupied
-  (if (= 1 (world-turn w))
-      (if (piece? (get-piece (world-pieces w) (world-pos1x w) (world-pos1y w)))
-          #false
-          #true)
-      (if (piece? (get-piece (world-pieces w) (world-pos2x w) (world-pos2y w)))
-          #false
-          #true)))
+  ; Check if space is occupied by a same-color piece
+  (cond [(= 1 (world-turn w))
+         (if (piece? (get-piece (world-pieces w) (world-pos1x w) (world-pos1y w)))
+             (if (symbol=? 'white (piece-color (get-piece (world-pieces w)
+                                                          (world-pos1x w)
+                                                          (world-pos1y w))))
+                 #false
+                 #true)
+             #true)]
+        [else  (if (piece? (get-piece (world-pieces w) (world-pos2x w) (world-pos2y w)))
+                   (if (symbol=? 'black (piece-color (get-piece (world-pieces w)
+                                                                (world-pos2x w)
+                                                                (world-pos2y w))))
+                       #false
+                       #true)
+                   #true)]))
 
 ; Tests
 (check-expect (movement-valid INITIAL-WORLD) #false)
@@ -336,45 +369,114 @@
               #false)
 
 
-; would-eat: World Coord Coord -> Boolean
+; would-eat: World -> Boolean
+; Returns #true if the current move would eat a piece, #false otherwise
 (define (would-eat w)
-  #false)
+   (cond [(= 1 (world-turn w))
+         (if (piece? (get-piece (world-pieces w) (world-pos1x w) (world-pos1y w)))
+             (if (symbol=? 'white (piece-color (get-piece (world-pieces w)
+                                                          (world-pos1x w)
+                                                          (world-pos1y w))))
+                 #false
+                 #true)
+             #false)]
+        [else  (if (piece? (get-piece (world-pieces w) (world-pos2x w) (world-pos2y w)))
+                   (if (symbol=? 'black (piece-color (get-piece (world-pieces w)
+                                                                (world-pos2x w)
+                                                                (world-pos2y w))))
+                       #false
+                       #true)
+                   #false)]))
 
 ; Tests
-; TODO
+(check-expect (would-eat INITIAL-WORLD) #false)
+(check-expect (would-eat (make-world PIECE-LIST
+                                          4
+                                          5
+                                          0
+                                          6
+                                          2
+                                          #false
+                                          #false
+                                          0
+                                          1))
+              #true)
 
 
-; eat-piece: World Coord Cord -> World
+; eat-piece: World -> World
+; Returns a World without the piece that got eaten.
 (define (eat-piece w)
   (if (= 1 (world-turn w))
-      (struct-copy world w
-                   [pieces (cons (make-piece 'white
-                                             (piece-type (get-piece (world-pieces w)
-                                                                    (world-movingx w)
-                                                                    (world-movingy w)))
-                                             (world-pos1x w)
-                                             (world-pos1y w))
-                                 (remove (get-piece
-                                          (world-pieces w)
-                                          (world-movingx w)
-                                          (world-movingy w))
-                                         (world-pieces w)))]
-                   [turn 2]
-                   [pick1 #false])
-      (struct-copy world w
-                   [pieces (cons (make-piece 'black
-                                             (piece-type (get-piece (world-pieces w)
-                                                                    (world-movingx w)
-                                                                    (world-movingy w)))
-                                             (world-pos2x w)
-                                             (world-pos2y w))
-                                 (remove (get-piece
-                                          (world-pieces w)
-                                          (world-movingx w)
-                                          (world-movingy w))
-                                         (world-pieces w)))]
-                   [turn 1]
-                   [pick2 #false])))
+      (if (symbol=? 'King
+                    (piece-type (get-piece (world-pieces w) (world-pos1x w) (world-pos1y w))))
+          (struct-copy world w
+                       [pieces (cons (make-piece 'white
+                                                 (piece-type (get-piece (world-pieces w)
+                                                                        (world-movingx w)
+                                                                        (world-movingy w)))
+                                                 (world-pos1x w)
+                                                 (world-pos1y w))
+                                     (remove (get-piece (world-pieces w)
+                                                        (world-pos1x w)
+                                                        (world-pos1y w))
+                                             (remove (get-piece (world-pieces w)
+                                                                (world-movingx w)
+                                                                (world-movingy w))
+                                                     (world-pieces w))))]
+                       [turn 3]
+                       [pick1 #false])
+          (struct-copy world w
+                       [pieces (cons (make-piece 'white
+                                                 (piece-type (get-piece (world-pieces w)
+                                                                        (world-movingx w)
+                                                                        (world-movingy w)))
+                                                 (world-pos1x w)
+                                                 (world-pos1y w))
+                                     (remove (get-piece (world-pieces w)
+                                                        (world-pos1x w)
+                                                        (world-pos1y w))
+                                             (remove (get-piece (world-pieces w)
+                                                                (world-movingx w)
+                                                                (world-movingy w))
+                                                     (world-pieces w))))]
+                       [turn 2]
+                       [pick1 #false]))
+      (if (symbol=? 'King
+                    (piece-type (get-piece (world-pieces w) (world-pos2x w) (world-pos2y w))))
+          (struct-copy world w
+                       [pieces (cons (make-piece 'black
+                                                 (piece-type (get-piece (world-pieces w)
+                                                                        (world-movingx w)
+                                                                        (world-movingy w)))
+                                                 (world-pos2x w)
+                                                 (world-pos2y w))
+                                     (remove (get-piece (world-pieces w)
+                                                        (world-pos2x w)
+                                                        (world-pos2y w))
+                                             (remove (get-piece
+                                                      (world-pieces w)
+                                                      (world-movingx w)
+                                                      (world-movingy w))
+                                                     (world-pieces w))))]
+                       [turn 4]
+                       [pick2 #false])
+          (struct-copy world w
+                       [pieces (cons (make-piece 'black
+                                                 (piece-type (get-piece (world-pieces w)
+                                                                        (world-movingx w)
+                                                                        (world-movingy w)))
+                                                 (world-pos2x w)
+                                                 (world-pos2y w))
+                                     (remove (get-piece (world-pieces w)
+                                                        (world-pos2x w)
+                                                        (world-pos2y w))
+                                             (remove (get-piece
+                                                      (world-pieces w)
+                                                      (world-movingx w)
+                                                      (world-movingy w))
+                                                     (world-pieces w))))]
+                       [turn 1]
+                       [pick2 #false]))))
 
 ; Tests
 ; TODO
@@ -417,77 +519,80 @@
      (struct-copy world w [pos2x (+ (world-pos2x w) 1)])]
 
     ; Pick and drop piece (spacebar)
-    ; TODO:
-    ; Movement type allowed? -> movement-valid func
-    ; Eat a piece func
     [(key=? key " ")
      (cond
        ; Player 1 part
        [(= 1 (world-turn w))
-            (if (world-pick1 w)
-                ; If player has picked a piece, check move
-                (if (movement-valid w)
-                    ; Check if move would eat a piece
-                    (if (would-eat w)
-                        ; Eat piece and end turn
-                        (eat-piece w)
-                        ; Empty space, drop the piece (remove the old and append the new) and end turn
-                        (struct-copy world w
-                                     [pieces (cons (make-piece 'white
-                                                               (piece-type (get-piece (world-pieces w)
-                                                                                      (world-movingx w)
-                                                                                      (world-movingy w)))
-                                                               (world-pos1x w)
-                                                               (world-pos1y w))
-                                                   (remove (get-piece
-                                                            (world-pieces w)
-                                                            (world-movingx w)
-                                                            (world-movingy w))
-                                                           (world-pieces w)))]
-                                     [turn 2]
-                                     [pick1 #false]))
-                    ; Invalid movement
-                    w)
-                (if (piece? (get-piece (world-pieces w) (world-pos1x w) (world-pos1y w)))
+        (if (world-pick1 w)
+            ; If player has picked a piece, check move
+            (if (movement-valid w)
+                ; Check if move would eat a piece
+                (if (would-eat w)
+                    ; Eat piece and end turn
+                    (eat-piece w)
+                    ; Empty space, drop the piece (remove the old and append the new) and end turn
+                    (struct-copy world w
+                                 [pieces (cons (make-piece 'white
+                                                           (piece-type (get-piece (world-pieces w)
+                                                                                  (world-movingx w)
+                                                                                  (world-movingy w)))
+                                                           (world-pos1x w)
+                                                           (world-pos1y w))
+                                               (remove (get-piece
+                                                        (world-pieces w)
+                                                        (world-movingx w)
+                                                        (world-movingy w))
+                                                       (world-pieces w)))]
+                                 [turn 2]
+                                 [pick1 #false]))
+                ; Invalid movement
+                w)
+            (if (piece? (get-piece (world-pieces w) (world-pos1x w) (world-pos1y w)))
+                (if (symbol=? 'white (piece-color (get-piece (world-pieces w)
+                                                             (world-pos1x w)
+                                                             (world-pos1y w))))
                     ; Remember the piece the player picked up
                     (struct-copy world w
                                  [pick1 #true]
                                  [movingx (world-pos1x w)]
                                  [movingy (world-pos1y w)])
-                    w))]
-           
-           ; Player 2 part
-           [else (if (world-pick2 w)
-                ; If player has picked a piece, check move
-                (if (movement-valid w)
-                    ; Check if move would eat a piece
-                    (if (would-eat w)
-                        ; Eat piece and end turn
-                        (eat-piece w)
-                        ; Empty space, drop the piece (remove the old and append the new) and end turn
-                        (struct-copy world w
-                                     [pieces (cons (make-piece 'black
-                                                               (piece-type (get-piece (world-pieces w)
-                                                                                      (world-movingx w)
-                                                                                      (world-movingy w)))
-                                                               (world-pos2x w)
-                                                               (world-pos2y w))
-                                                   (remove (get-piece
-                                                            (world-pieces w)
-                                                            (world-movingx w)
-                                                            (world-movingy w))
-                                                           (world-pieces w)))]
-                                     [turn 1]
-                                     [pick2 #false]))
-                    ; Invalid movement
                     w)
-                (if (piece? (get-piece (world-pieces w) (world-pos2x w) (world-pos2y w)))
-                    ; Remember the piece the player picked up
-                    (struct-copy world w
-                                 [pick2 #true]
-                                 [movingx (world-pos2x w)]
-                                 [movingy (world-pos2y w)])
-                    w))])]
+                w))]
+           
+       ; Player 2 part
+       [else (if (world-pick2 w)
+                 ; If player has picked a piece, check move
+                 (if (movement-valid w)
+                     ; Check if move would eat a piece
+                     (if (would-eat w)
+                         ; Eat piece and end turn
+                         (eat-piece w)
+                         ; Empty space, drop the piece (remove the old and append the new) and end turn
+                         (struct-copy world w
+                                      [pieces (cons (make-piece 'black
+                                                                (piece-type (get-piece w))
+                                                                (world-pos2x w)
+                                                                (world-pos2y w))
+                                                    (remove (get-piece
+                                                             (world-pieces w)
+                                                             (world-movingx w)
+                                                             (world-movingy w))
+                                                            (world-pieces w)))]
+                                      [turn 1]
+                                      [pick2 #false]))
+                     ; Invalid movement
+                     w)
+                 (if (piece? (get-piece (world-pieces w) (world-pos2x w) (world-pos2y w)))
+                     (if (symbol=? 'black (piece-color (get-piece (world-pieces w)
+                                                                  (world-pos2x w)
+                                                                  (world-pos2y w))))
+                         ; Remember the piece the player picked up
+                         (struct-copy world w
+                                      [pick2 #true]
+                                      [movingx (world-pos2x w)]
+                                      [movingy (world-pos2y w)])
+                         w)
+                     w))])]
     ; Nothing
     [else w]))
   
