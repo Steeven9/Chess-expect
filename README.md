@@ -7,7 +7,8 @@ a friend or colleague on one machine.
 ## Installation guide
 
   * Clone or download the repo
-  * Launch chess-expect.rkt
+  * Open chess-expect.rkt with a Racket-compatible IDE (like DrRacket)
+  * Run the program and call (main 0)
   * Enjoy!
 
 
@@ -19,7 +20,10 @@ when a piece gets dropped on a valid tile.
 
 Note: to win, you have to eat the king. Yup.
 
+
 ## Language and libraries
 
-The program is in Advanced Student Language, made with DrRacket v7.0; it uses the libraries racket/base
-(for struct-copy), 2htdp/image (image manipulation and drawing) and 2htdp/universe (big-bang).
+The program is in Advanced Student Language, made with DrRacket v7.0.
+
+It uses the libraries racket/base (for struct-copy), 2htdp/image (for image manipulation and drawing) 
+and 2htdp/universe (big-bang).

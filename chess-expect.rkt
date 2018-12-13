@@ -128,10 +128,11 @@
 (define B-CURSOR-ACTIVE (square (/ WIDTH 8) 'outline (pen 'blue 5 "dot" "round" "round")))
 
 ; The main menu text
-(define MENU-TEXT (above (overlay (text "Welcome to Chess-expect!" 32 'black)
-                                  (rectangle 500 125 'solid 'white))
-                         (overlay (text "Press escape to begin." 24 'black)
-                                  (rectangle 500 100 'solid 'white))))
+(define MENU-TEXT (overlay (text "Press escape to begin." 24 'black)
+                           (rectangle 300 100 'solid 'white)))
+
+; The main menu logo
+(define MENU-LOGO (bitmap "img/logo.png"))
 
 ; Copyright text at the bottom
 (define MENU-COPYRIGHT (text "Stefano Taillefert - PF1 Final Project" 16 'black))
@@ -147,6 +148,9 @@
                                (rectangle 500 125 'solid 'white))
                       (overlay (text "Yay! Press escape to restart." 24 'black)
                                (rectangle 500 100 'solid 'white))))
+
+; "Thank you" text at the bottom
+(define THANKS-TEXT (text "Thank you for your time, have a nice day!" 16 'black))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -232,12 +236,18 @@
          (place-image P1-WIN
                       400
                       400
-                      img)]
+                      (place-image THANKS-TEXT
+                                   400
+                                   850
+                                   img))]
         [(= 4 (world-turn w))
          (place-image P2-WIN
                       400
                       400
-                      img)]
+                      (place-image THANKS-TEXT
+                                   400
+                                   850
+                                   img))]
         [else
          (place-image/align (if (= 1 (world-turn w))
                                 (if (world-pick1 w)
@@ -274,9 +284,14 @@
       (place-image MENU-COPYRIGHT
                    400
                    850
-                   (overlay MENU-TEXT
-                            (draw-board 0
-                                        (empty-scene WIDTH (+ 100 HEIGHT)))))
+                   (place-image MENU-LOGO
+                                400
+                                350
+                                (place-image MENU-TEXT
+                                             400
+                                             450
+                                             (draw-board 0
+                                                         (empty-scene WIDTH (+ 100 HEIGHT))))))
       (draw-text w
                  (draw-pieces (world-pieces w)
                               (draw-cursors w
@@ -372,7 +387,7 @@
 ; would-eat: World -> Boolean
 ; Returns #true if the current move would eat a piece, #false otherwise
 (define (would-eat w)
-   (cond [(= 1 (world-turn w))
+  (cond [(= 1 (world-turn w))
          (if (piece? (get-piece (world-pieces w) (world-pos1x w) (world-pos1y w)))
              (if (symbol=? 'white (piece-color (get-piece (world-pieces w)
                                                           (world-pos1x w)
@@ -391,15 +406,15 @@
 ; Tests
 (check-expect (would-eat INITIAL-WORLD) #false)
 (check-expect (would-eat (make-world PIECE-LIST
-                                          4
-                                          5
-                                          0
-                                          6
-                                          2
-                                          #false
-                                          #false
-                                          0
-                                          1))
+                                     4
+                                     5
+                                     0
+                                     6
+                                     2
+                                     #false
+                                     #false
+                                     0
+                                     1))
               #true)
 
 
@@ -601,7 +616,6 @@
 ; Launches big-bang.
 (define (main _)
   (big-bang INITIAL-WORLD-MENU
-    [state #true]
     [name "Chess-expect!"]
     [to-draw draw-world]
     [on-key handle-key]))
