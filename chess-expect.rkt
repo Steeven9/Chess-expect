@@ -128,8 +128,7 @@
 (define B-CURSOR-ACTIVE (square (/ WIDTH 8) 'outline (pen 'blue 5 "dot" "round" "round")))
 
 ; The main menu text
-(define MENU-TEXT (overlay (text "Press escape to begin." 24 'black)
-                           (rectangle 300 100 'solid 'white)))
+(define MENU-TEXT (bitmap "img/menuText.png"))
 
 ; The main menu logo
 (define MENU-LOGO (bitmap "img/logo.png"))
@@ -493,9 +492,6 @@
                        [turn 1]
                        [pick2 #false]))))
 
-; Tests
-; TODO
-
 
 ;;;; Big-bang and handlers ;;;;
 
@@ -585,7 +581,9 @@
                          ; Empty space, drop the piece (remove the old and append the new) and end turn
                          (struct-copy world w
                                       [pieces (cons (make-piece 'black
-                                                                (piece-type (get-piece w))
+                                                                (piece-type (get-piece (world-pieces w)
+                                                                                       (world-movingx w)
+                                                                                       (world-movingy w)))
                                                                 (world-pos2x w)
                                                                 (world-pos2y w))
                                                     (remove (get-piece
