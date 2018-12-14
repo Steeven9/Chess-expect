@@ -29,26 +29,28 @@
 ; Data definition
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; A Coord is a NonNegativeInteger between 0 and 7 (included).
+; A Position (Pos) is a (make-pos x y) where:
+; - x, y are NonNegativeInteger between 0 and 7 (included).
 ; Interpretation: a coordinate on the chessboard.
+(define-struct pos [x y] #:transparent)
 
 ; A World is a (make-world pieces pos1x pos1y pos2x pos2y turn
 ; pick1 pick2 movingx movingy) where:
 ; - pieces is a List<Piece>,
-; - pos1x, pos1y, pos2x, pos2y are Coord,
+; - pos1, pos2 are Position,
 ; - turn is either 0 (menu), 1, 2, 3 (p1 wins) or 4 (p2 wins),
 ; - pick1, pick2 are Boolean,
 ; - movingx, movingy are Coord.
 ; Interpretation: the world status with the pieces list, the position of the two
 ; players' (white is 1 and black is 2) pointers and movement status.
-(define-struct world [pieces pos1x pos1y pos2x pos2y turn pick1 pick2 movingx movingy] #:transparent)
+(define-struct world [pieces pos1 pos2 turn pick1 pick2 moving] #:transparent)
 
 ; A Piece is a (make-piece color type x y) where:
 ; - color is either 'white or 'black,
 ; - type is one of 'Pawn, 'Rook, 'Knight, 'Bishop, 'King, 'Queen,
 ; - x, y are Coord.
 ; Interpretation: a piece with its data and coordinates.
-(define-struct piece [color type x y] #:transparent)
+(define-struct piece [color type pos] #:transparent)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -62,49 +64,48 @@
 (define HEIGHT 800)
 
 ; The default piece list
-(define PIECE-LIST (list (make-piece 'white 'Pawn 0 6)
-                         (make-piece 'white 'Pawn 1 6)
-                         (make-piece 'white 'Pawn 2 6)
-                         (make-piece 'white 'Pawn 3 6)
-                         (make-piece 'white 'Pawn 4 6)
-                         (make-piece 'white 'Pawn 5 6)
-                         (make-piece 'white 'Pawn 6 6)
-                         (make-piece 'white 'Pawn 7 6)
-                         (make-piece 'white 'Rook 0 7)
-                         (make-piece 'white 'Knight 1 7)
-                         (make-piece 'white 'Bishop 2 7)
-                         (make-piece 'white 'King 3 7)
-                         (make-piece 'white 'Queen 4 7)
-                         (make-piece 'white 'Bishop 5 7)
-                         (make-piece 'white 'Knight 6 7)
-                         (make-piece 'white 'Rook 7 7)
-                         (make-piece 'black 'Pawn 0 1)
-                         (make-piece 'black 'Pawn 1 1)
-                         (make-piece 'black 'Pawn 2 1)
-                         (make-piece 'black 'Pawn 3 1)
-                         (make-piece 'black 'Pawn 4 1)
-                         (make-piece 'black 'Pawn 5 1)
-                         (make-piece 'black 'Pawn 6 1)
-                         (make-piece 'black 'Pawn 7 1)
-                         (make-piece 'black 'Rook 0 0)
-                         (make-piece 'black 'Knight 1 0)
-                         (make-piece 'black 'Bishop 2 0)
-                         (make-piece 'black 'King 3 0)
-                         (make-piece 'black 'Queen 4 0)
-                         (make-piece 'black 'Bishop 5 0)
-                         (make-piece 'black 'Knight 6 0)
-                         (make-piece 'black 'Rook 7 0)))
+(define PIECE-LIST (list (make-piece 'white 'Pawn (make-pos 0 6))
+                         (make-piece 'white 'Pawn (make-pos 1 6))
+                         (make-piece 'white 'Pawn (make-pos 2 6))
+                         (make-piece 'white 'Pawn (make-pos 3 6))
+                         (make-piece 'white 'Pawn (make-pos 4 6))
+                         (make-piece 'white 'Pawn (make-pos 5 6))
+                         (make-piece 'white 'Pawn (make-pos 6 6))
+                         (make-piece 'white 'Pawn (make-pos 7 6))
+                         (make-piece 'white 'Rook (make-pos 0 7))
+                         (make-piece 'white 'Knight (make-pos 1 7))
+                         (make-piece 'white 'Bishop (make-pos 2 7))
+                         (make-piece 'white 'King (make-pos 3 7))
+                         (make-piece 'white 'Queen (make-pos 4 7))
+                         (make-piece 'white 'Bishop (make-pos 5 7))
+                         (make-piece 'white 'Knight (make-pos 6 7))
+                         (make-piece 'white 'Rook (make-pos 7 7))
+                         (make-piece 'black 'Pawn (make-pos 0 1))
+                         (make-piece 'black 'Pawn (make-pos 1 1))
+                         (make-piece 'black 'Pawn (make-pos 2 1))
+                         (make-piece 'black 'Pawn (make-pos 3 1))
+                         (make-piece 'black 'Pawn (make-pos 4 1))
+                         (make-piece 'black 'Pawn (make-pos 5 1))
+                         (make-piece 'black 'Pawn (make-pos 6 1))
+                         (make-piece 'black 'Pawn (make-pos 7 1))
+                         (make-piece 'black 'Rook (make-pos 0 0))
+                         (make-piece 'black 'Knight (make-pos 1 0))
+                         (make-piece 'black 'Bishop (make-pos 2 0))
+                         (make-piece 'black 'King (make-pos 3 0))
+                         (make-piece 'black 'Queen (make-pos 4 0))
+                         (make-piece 'black 'Bishop (make-pos 5 0))
+                         (make-piece 'black 'Knight (make-pos 6 0))
+                         (make-piece 'black 'Rook (make-pos 7 0))))
 
 ; Initial world.
 ; Starting positions are the king's coordinates, player1 (white) moves first.
 (define INITIAL-WORLD (make-world PIECE-LIST
-                                  3 7
-                                  3 0
+                                  (make-pos 3 7)
+                                  (make-pos 3 0)
                                   1
                                   #false
                                   #false
-                                  0
-                                  0))
+                                  (make-pos 0 0)))
 
 ; Initial menu
 (define INITIAL-WORLD-MENU (struct-copy world INITIAL-WORLD [turn 0]))
@@ -160,13 +161,13 @@
 
 ; draw-board-line: Coord Coord Image -> Image
 ; Draws one chessboard line.
-(define (draw-board-line x y img)
-  (cond [(< 7 x) img]
+(define (draw-board-line pos img)
+  (cond [(< 7 (pos-x pos)) img]
         [else
          (place-image B-TILE
-                      (tile-x x)
-                      (tile-y y)
-                      (draw-board-line (+ 2 x) y img))]))
+                      (tile-x (pos-x pos))
+                      (tile-y (pos-y pos))
+                      (draw-board-line (make-pos (+ 2 (pos-x pos)) (pos-y pos)) img))]))
 
 
 ; draw-board: Coord Image -> Image
@@ -174,8 +175,8 @@
 (define (draw-board y img)
   (cond [(< 7 y) img]
         [(member y '(1 3 5 7))
-         (draw-board (add1 y) (draw-board-line 0 y img))]
-        [else (draw-board (add1 y) (draw-board-line 1 y img))]))
+         (draw-board (add1 y) (draw-board-line (make-pos 0 y) img))]
+        [else (draw-board (add1 y) (draw-board-line (make-pos 1 y) img))]))
 
 
 ; draw-cursors: World Image -> Image
@@ -184,27 +185,27 @@
   (if (= 1 (world-turn w))
       (if (world-pick1 w)
           (place-image W-CURSOR-ACTIVE
-                       (tile-x (world-pos1x w))
-                       (tile-y (world-pos1y w))
+                       (tile-x (pos-x (world-pos1 w)))
+                       (tile-y (pos-y (world-pos1 w)))
                        (place-image W-CURSOR-ACTIVE
-                                    (tile-x (world-movingx w))
-                                    (tile-y (world-movingy w))
+                                    (tile-x (pos-x (world-moving w)))
+                                    (tile-y (pos-y (world-moving w)))
                                     img))
           (place-image W-CURSOR
-                       (tile-x (world-pos1x w))
-                       (tile-y (world-pos1y w))
+                       (tile-x (pos-x (world-pos1 w)))
+                       (tile-y (pos-y (world-pos1 w)))
                        img))
       (if (world-pick2 w)
           (place-image B-CURSOR-ACTIVE
-                       (tile-x (world-pos2x w))
-                       (tile-y (world-pos2y w))
+                       (tile-x (pos-x (world-pos2 w)))
+                       (tile-y (pos-y (world-pos2 w)))
                        (place-image B-CURSOR-ACTIVE
-                                    (tile-x (world-movingx w))
-                                    (tile-y (world-movingy w))
+                                    (tile-x (pos-x (world-moving w)))
+                                    (tile-y (pos-y (world-moving w)))
                                     img))
           (place-image B-CURSOR
-                       (tile-x (world-pos2x w))
-                       (tile-y (world-pos2y w))
+                       (tile-x (pos-x (world-pos2 w)))
+                       (tile-y (pos-y (world-pos2 w)))
                        img))))
 
 
@@ -216,8 +217,8 @@
                                         (symbol->string (piece-type p))
                                         ".png"))]
     (place-image (bitmap/file source)
-                 (tile-x (piece-x p))
-                 (tile-y (piece-y p))
+                 (tile-x (pos-x (piece-pos p)))
+                 (tile-y (pos-y (piece-pos p)))
                  img)))
 
 
@@ -326,15 +327,17 @@
 
 ; get-piece: List<Piece> Coord Coord -> Option<Piece>
 ; Returns the piece at a given location or #false if there are none.
-(define (get-piece pl x y)
+(define (get-piece pl pos)
   (cond [(empty? pl) #false]
-        [(and (= x (piece-x (first pl))) (= y (piece-y (first pl)))) (first pl)]
-        [else (get-piece (rest pl) x y)]))
+        [(and (= (pos-x pos) (pos-x (piece-pos (first pl))))
+              (= (pos-y pos) (pos-y (piece-pos (first pl)))))
+         (first pl)]
+        [else (get-piece (rest pl) pos)]))
 
 ; Tests 
-(check-expect (get-piece PIECE-LIST 7 1) (make-piece 'black 'Pawn 7 1))
-(check-expect (get-piece PIECE-LIST 0 0) (make-piece 'black 'Rook 0 0))
-(check-expect (get-piece PIECE-LIST 4 5) #false)
+(check-expect (get-piece PIECE-LIST (make-pos 7 1)) (make-piece 'black 'Pawn (make-pos 7 1)))
+(check-expect (get-piece PIECE-LIST (make-pos 0 0)) (make-piece 'black 'Rook (make-pos 0 0)))
+(check-expect (get-piece PIECE-LIST (make-pos 4 5)) #false)
 
 
 ; movement-valid: World Coord Coord -> Boolean
@@ -342,17 +345,15 @@
 (define (movement-valid w)
   ; Check if space is occupied by a same-color piece
   (cond [(= 1 (world-turn w))
-         (if (piece? (get-piece (world-pieces w) (world-pos1x w) (world-pos1y w)))
+         (if (piece? (get-piece (world-pieces w) (world-pos1 w)))
              (if (symbol=? 'white (piece-color (get-piece (world-pieces w)
-                                                          (world-pos1x w)
-                                                          (world-pos1y w))))
+                                                          (world-pos1 w))))
                  #false
                  #true)
              #true)]
-        [else  (if (piece? (get-piece (world-pieces w) (world-pos2x w) (world-pos2y w)))
+        [else  (if (piece? (get-piece (world-pieces w) (world-pos2 w)))
                    (if (symbol=? 'black (piece-color (get-piece (world-pieces w)
-                                                                (world-pos2x w)
-                                                                (world-pos2y w))))
+                                                                (world-pos2 w))))
                        #false
                        #true)
                    #true)]))
@@ -360,26 +361,20 @@
 ; Tests
 (check-expect (movement-valid INITIAL-WORLD) #false)
 (check-expect (movement-valid (make-world PIECE-LIST
-                                          4
-                                          5
-                                          3
-                                          0
+                                          (make-pos 4 5)
+                                          (make-pos 3 0)
                                           1
                                           #false
                                           #false
-                                          0
-                                          7))
+                                          (make-pos 0 7)))
               #true)
 (check-expect (movement-valid (make-world PIECE-LIST
-                                          4
-                                          5
-                                          3
-                                          0
+                                          (make-pos 4 5)
+                                          (make-pos 3 0)
                                           2
                                           #false
                                           #false
-                                          1
-                                          0))
+                                          (make-pos 1 0)))
               #false)
 
 
@@ -387,17 +382,15 @@
 ; Returns #true if the current move would eat a piece, #false otherwise
 (define (would-eat w)
   (cond [(= 1 (world-turn w))
-         (if (piece? (get-piece (world-pieces w) (world-pos1x w) (world-pos1y w)))
+         (if (piece? (get-piece (world-pieces w) (world-pos1 w)))
              (if (symbol=? 'white (piece-color (get-piece (world-pieces w)
-                                                          (world-pos1x w)
-                                                          (world-pos1y w))))
+                                                          (world-pos1 w))))
                  #false
                  #true)
              #false)]
-        [else  (if (piece? (get-piece (world-pieces w) (world-pos2x w) (world-pos2y w)))
+        [else  (if (piece? (get-piece (world-pieces w) (world-pos2 w)))
                    (if (symbol=? 'black (piece-color (get-piece (world-pieces w)
-                                                                (world-pos2x w)
-                                                                (world-pos2y w))))
+                                                                (world-pos2 w))))
                        #false
                        #true)
                    #false)]))
@@ -405,15 +398,12 @@
 ; Tests
 (check-expect (would-eat INITIAL-WORLD) #false)
 (check-expect (would-eat (make-world PIECE-LIST
-                                     4
-                                     5
-                                     0
-                                     6
+                                     (make-pos 4 5)
+                                     (make-pos 0 6)
                                      2
                                      #false
                                      #false
-                                     0
-                                     1))
+                                     (make-pos 0 1)))
               #true)
 
 
@@ -422,72 +412,56 @@
 (define (eat-piece w)
   (if (= 1 (world-turn w))
       (if (symbol=? 'King
-                    (piece-type (get-piece (world-pieces w) (world-pos1x w) (world-pos1y w))))
+                    (piece-type (get-piece (world-pieces w) (world-pos1 w))))
           (struct-copy world w
                        [pieces (cons (make-piece 'white
                                                  (piece-type (get-piece (world-pieces w)
-                                                                        (world-movingx w)
-                                                                        (world-movingy w)))
-                                                 (world-pos1x w)
-                                                 (world-pos1y w))
+                                                                        (world-moving w)))
+                                                 (world-pos1 w))
                                      (remove (get-piece (world-pieces w)
-                                                        (world-pos1x w)
-                                                        (world-pos1y w))
+                                                        (world-pos1 w))
                                              (remove (get-piece (world-pieces w)
-                                                                (world-movingx w)
-                                                                (world-movingy w))
+                                                                (world-moving w))
                                                      (world-pieces w))))]
                        [turn 3]
                        [pick1 #false])
           (struct-copy world w
                        [pieces (cons (make-piece 'white
                                                  (piece-type (get-piece (world-pieces w)
-                                                                        (world-movingx w)
-                                                                        (world-movingy w)))
-                                                 (world-pos1x w)
-                                                 (world-pos1y w))
+                                                                        (world-moving w)))
+                                                 (world-pos1 w))
                                      (remove (get-piece (world-pieces w)
-                                                        (world-pos1x w)
-                                                        (world-pos1y w))
+                                                        (world-pos1 w))
                                              (remove (get-piece (world-pieces w)
-                                                                (world-movingx w)
-                                                                (world-movingy w))
+                                                                (world-moving w))
                                                      (world-pieces w))))]
                        [turn 2]
                        [pick1 #false]))
       (if (symbol=? 'King
-                    (piece-type (get-piece (world-pieces w) (world-pos2x w) (world-pos2y w))))
+                    (piece-type (get-piece (world-pieces w) (world-pos2 w))))
           (struct-copy world w
                        [pieces (cons (make-piece 'black
                                                  (piece-type (get-piece (world-pieces w)
-                                                                        (world-movingx w)
-                                                                        (world-movingy w)))
-                                                 (world-pos2x w)
-                                                 (world-pos2y w))
+                                                                        (world-moving w)))
+                                                 (world-pos2 w))
                                      (remove (get-piece (world-pieces w)
-                                                        (world-pos2x w)
-                                                        (world-pos2y w))
+                                                        (world-pos2 w))
                                              (remove (get-piece
                                                       (world-pieces w)
-                                                      (world-movingx w)
-                                                      (world-movingy w))
+                                                      (world-moving w))
                                                      (world-pieces w))))]
                        [turn 4]
                        [pick2 #false])
           (struct-copy world w
                        [pieces (cons (make-piece 'black
                                                  (piece-type (get-piece (world-pieces w)
-                                                                        (world-movingx w)
-                                                                        (world-movingy w)))
-                                                 (world-pos2x w)
-                                                 (world-pos2y w))
+                                                                        (world-moving w)))
+                                                 (world-pos2 w))
                                      (remove (get-piece (world-pieces w)
-                                                        (world-pos2x w)
-                                                        (world-pos2y w))
+                                                        (world-pos2 w))
                                              (remove (get-piece
                                                       (world-pieces w)
-                                                      (world-movingx w)
-                                                      (world-movingy w))
+                                                      (world-moving w))
                                                      (world-pieces w))))]
                        [turn 1]
                        [pick2 #false]))))
@@ -504,30 +478,38 @@
      INITIAL-WORLD]
     
     ; Player 1 movement
-    [(and (key=? key "w") (= 1 (world-turn w)) (< 0 (world-pos1y w)))
-     (struct-copy world w [pos1y (- (world-pos1y w) 1)])]
+    [(and (key=? key "w") (= 1 (world-turn w)) (< 0 (pos-y (world-pos1 w))))
+     (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
+                                          (sub1 (pos-y (world-pos1 w))))])]
 
-    [(and (key=? key "s") (= 1 (world-turn w)) (> 7 (world-pos1y w)))
-     (struct-copy world w [pos1y (+ (world-pos1y w) 1)])]
+    [(and (key=? key "s") (= 1 (world-turn w)) (> 7 (pos-y (world-pos1 w))))
+     (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
+                                          (add1 (pos-y (world-pos1 w))))])]
 
-    [(and (key=? key "a") (= 1 (world-turn w)) (< 0 (world-pos1x w)))
-     (struct-copy world w [pos1x (- (world-pos1x w) 1)])]
+    [(and (key=? key "a") (= 1 (world-turn w)) (< 0 (pos-x (world-pos1 w))))
+     (struct-copy world w [pos1 (make-pos (sub1 (pos-x (world-pos1 w)))
+                                          (pos-y (world-pos1 w)))])]
 
-    [(and (key=? key "d") (= 1 (world-turn w)) (> 7 (world-pos1x w)))
-     (struct-copy world w [pos1x (+ (world-pos1x w) 1)])]
+    [(and (key=? key "d") (= 1 (world-turn w)) (> 7 (pos-x (world-pos1 w))))
+     (struct-copy world w [pos1 (make-pos (add1 (pos-x (world-pos1 w)))
+                                          (pos-y (world-pos1 w)))])]
 
     ; Player 2 movement
-    [(and (key=? key "up") (= 2 (world-turn w)) (< 0 (world-pos2y w)))
-     (struct-copy world w [pos2y (- (world-pos2y w) 1)])]
+    [(and (key=? key "up") (= 2 (world-turn w)) (< 0 (pos-y (world-pos2 w))))
+     (struct-copy world w [pos2 (make-pos (pos-x (world-pos2 w))
+                                          (sub1 (pos-y (world-pos2 w))))])]
 
-    [(and (key=? key "down") (= 2 (world-turn w)) (> 7 (world-pos2y w)))
-     (struct-copy world w [pos2y (+ (world-pos2y w) 1)])]
+    [(and (key=? key "down") (= 2 (world-turn w)) (> 7 (pos-y (world-pos2 w))))
+     (struct-copy world w [pos2 (make-pos (pos-x (world-pos2 w))
+                                          (add1 (pos-y (world-pos2 w))))])]
 
-    [(and (key=? key "left") (= 2 (world-turn w)) (< 0 (world-pos2x w)))
-     (struct-copy world w [pos2x (- (world-pos2x w) 1)])]
+    [(and (key=? key "left") (= 2 (world-turn w)) (< 0 (pos-x (world-pos2 w))))
+     (struct-copy world w [pos2 (make-pos (sub1 (pos-x (world-pos2 w)))
+                                          (pos-y (world-pos2 w)))])]
 
-    [(and (key=? key "right") (= 2 (world-turn w)) (> 7 (world-pos2x w)))
-     (struct-copy world w [pos2x (+ (world-pos2x w) 1)])]
+    [(and (key=? key "right") (= 2 (world-turn w)) (> 7 (pos-x (world-pos2 w))))
+     (struct-copy world w [pos2 (make-pos (add1 (pos-x (world-pos2 w)))
+                                          (pos-y (world-pos2 w)))])]
 
     ; Pick and drop piece (spacebar)
     [(key=? key " ")
@@ -545,28 +527,23 @@
                     (struct-copy world w
                                  [pieces (cons (make-piece 'white
                                                            (piece-type (get-piece (world-pieces w)
-                                                                                  (world-movingx w)
-                                                                                  (world-movingy w)))
-                                                           (world-pos1x w)
-                                                           (world-pos1y w))
+                                                                                  (world-moving w)))
+                                                           (world-pos1 w))
                                                (remove (get-piece
                                                         (world-pieces w)
-                                                        (world-movingx w)
-                                                        (world-movingy w))
+                                                        (world-moving w))
                                                        (world-pieces w)))]
                                  [turn 2]
                                  [pick1 #false]))
                 ; Invalid movement
                 w)
-            (if (piece? (get-piece (world-pieces w) (world-pos1x w) (world-pos1y w)))
+            (if (piece? (get-piece (world-pieces w) (world-pos1 w)))
                 (if (symbol=? 'white (piece-color (get-piece (world-pieces w)
-                                                             (world-pos1x w)
-                                                             (world-pos1y w))))
+                                                             (world-pos1 w))))
                     ; Remember the piece the player picked up
                     (struct-copy world w
                                  [pick1 #true]
-                                 [movingx (world-pos1x w)]
-                                 [movingy (world-pos1y w)])
+                                 [moving (world-pos1 w)])
                     w)
                 w))]
            
@@ -582,28 +559,23 @@
                          (struct-copy world w
                                       [pieces (cons (make-piece 'black
                                                                 (piece-type (get-piece (world-pieces w)
-                                                                                       (world-movingx w)
-                                                                                       (world-movingy w)))
-                                                                (world-pos2x w)
-                                                                (world-pos2y w))
+                                                                                       (world-moving w)))
+                                                                (world-pos2 w))
                                                     (remove (get-piece
                                                              (world-pieces w)
-                                                             (world-movingx w)
-                                                             (world-movingy w))
+                                                             (world-moving w))
                                                             (world-pieces w)))]
                                       [turn 1]
                                       [pick2 #false]))
                      ; Invalid movement
                      w)
-                 (if (piece? (get-piece (world-pieces w) (world-pos2x w) (world-pos2y w)))
+                 (if (piece? (get-piece (world-pieces w) (world-pos2 w)))
                      (if (symbol=? 'black (piece-color (get-piece (world-pieces w)
-                                                                  (world-pos2x w)
-                                                                  (world-pos2y w))))
+                                                                  (world-pos2 w))))
                          ; Remember the piece the player picked up
                          (struct-copy world w
                                       [pick2 #true]
-                                      [movingx (world-pos2x w)]
-                                      [movingy (world-pos2y w)])
+                                      [moving (world-pos2 w)])
                          w)
                      w))])]
     ; Nothing
