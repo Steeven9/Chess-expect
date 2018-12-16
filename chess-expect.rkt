@@ -399,7 +399,7 @@
 
 
 ; can-drop-here: World -> Boolean
-; Returns #true if the space is free or occupied by an enemy, #false otherwise.
+; Returns #true if the piece can be dropped here, #false otherwise.
 (define (can-drop-here w)
   (cond [(= 1 (world-turn w))
          (if (piece? (get-piece (world-pieces w) (world-pos1 w)))
@@ -410,7 +410,13 @@
                      #true
                      #false)
                  #true)
-             #true)]
+             (if (symbol=? 'Knight (piece-type (get-piece (world-pieces w)
+                                                          (world-moving w))))
+                 (if (or (and (= 1 (get-x-distance w)) (= 2 (get-y-distance w)))
+                         (and (= 2 (get-x-distance w)) (= 1 (get-y-distance w))))
+                     #true
+                     #false)
+                 #true))]
         [else  (if (piece? (get-piece (world-pieces w) (world-pos2 w)))
                    (if (symbol=? 'black (piece-color (get-piece (world-pieces w)
                                                                 (world-pos2 w))))
@@ -419,7 +425,13 @@
                            #true
                            #false)
                        #true)
-                   #true)]))
+                   (if (symbol=? 'Knight (piece-type (get-piece (world-pieces w)
+                                                                (world-moving w))))
+                       (if (or (and (= 1 (get-x-distance w)) (= 2 (get-y-distance w)))
+                               (and (= 2 (get-x-distance w)) (= 1 (get-y-distance w))))
+                           #true
+                           #false)
+                       #true))]))
 
 ; Tests
 (check-expect (can-drop-here INITIAL-WORLD) #false)
@@ -633,6 +645,64 @@
                            (struct-copy world w [pos1 (make-pos (add1 (pos-x (world-pos1 w)))
                                                                 (pos-y (world-pos1 w)))])
                            w)]
+                      [else w])]
+               [(symbol=? 'Knight (piece-type (get-piece (world-pieces w) (world-moving w))))
+                (cond [(key=? key "w")
+                       (if (= 2 (get-x-distance w))
+                           (if (and (or (> 1 (get-y-distance w))
+                                        (> (pos-y (world-pos1 w)) (pos-y (world-moving w))))
+                                    (< 0 (pos-y (world-pos1 w))))
+                               (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
+                                                                    (sub1 (pos-y (world-pos1 w))))])
+                               w)
+                           (if (and (or (> 2 (get-y-distance w))
+                                        (> (pos-y (world-pos1 w)) (pos-y (world-moving w))))
+                                    (< 0 (pos-y (world-pos1 w))))
+                               (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
+                                                                    (sub1 (pos-y (world-pos1 w))))])
+                               w))]
+                      [(key=? key "a")
+                       (if (= 2 (get-y-distance w))
+                           (if (and (or (> 1 (get-x-distance w))
+                                        (> (pos-x (world-pos1 w)) (pos-x (world-moving w))))
+                                    (< 0 (pos-x (world-pos1 w))))
+                               (struct-copy world w [pos1 (make-pos (sub1 (pos-x (world-pos1 w)))
+                                                                    (pos-y (world-pos1 w)))])
+                               w)
+                           (if (and (or (> 2 (get-x-distance w))
+                                        (> (pos-x (world-pos1 w)) (pos-x (world-moving w))))
+                                    (< 0 (pos-x (world-pos1 w))))
+                               (struct-copy world w [pos1 (make-pos (sub1 (pos-x (world-pos1 w)))
+                                                                    (pos-y (world-pos1 w)))])
+                               w))]
+                      [(key=? key "s")
+                       (if (= 2 (get-x-distance w))
+                           (if (and (or (> 1 (get-y-distance w))
+                                        (< (pos-y (world-pos1 w)) (pos-y (world-moving w))))
+                                    (> 7 (pos-y (world-pos1 w))))
+                               (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
+                                                                    (add1 (pos-y (world-pos1 w))))])
+                               w)
+                           (if (and (or (> 2 (get-y-distance w))
+                                        (< (pos-y (world-pos1 w)) (pos-y (world-moving w))))
+                                    (> 7 (pos-y (world-pos1 w))))
+                               (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
+                                                                    (add1 (pos-y (world-pos1 w))))])
+                               w))]
+                      [(key=? key "d")
+                       (if (= 2 (get-y-distance w))
+                           (if (and (or (> 1 (get-x-distance w))
+                                        (< (pos-x (world-pos1 w)) (pos-x (world-moving w))))
+                                    (> 7 (pos-x (world-pos1 w))))
+                               (struct-copy world w [pos1 (make-pos (add1 (pos-x (world-pos1 w)))
+                                                                    (pos-y (world-pos1 w)))])
+                               w)
+                           (if (and (or (> 2 (get-x-distance w))
+                                        (< (pos-x (world-pos1 w)) (pos-x (world-moving w))))
+                                    (> 7 (pos-x (world-pos1 w))))
+                               (struct-copy world w [pos1 (make-pos (add1 (pos-x (world-pos1 w)))
+                                                                    (pos-y (world-pos1 w)))])
+                               w))]
                       [else w])]
                [else w])
          ; Free movement

@@ -36,3 +36,5 @@ Added eating function and win detection (eating the king).
 
 Dec 16
 Optimized some functions
+Added momvement checks
+Added the option of leaving the piece where it is without ending the turn
