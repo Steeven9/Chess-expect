@@ -33,3 +33,6 @@ Dec 12
 Added readme draft
 Now you can't pick up opponent's pieces. Makes sense.
 Added eating function and win detection (eating the king).
+
+Dec 16
+Optimized some functions
