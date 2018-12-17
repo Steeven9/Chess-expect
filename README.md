@@ -17,8 +17,11 @@ Every player moves its cursor with respectively WASD (player 1 - white pieces) a
 (player 2 - black pieces); the spacebar is used to pick up and drop the pieces. The turn ends automatically 
 when a piece gets dropped on a valid tile.
 
-Note: to win, you have to eat the king. Yup.
-
+Notes: 
+  * To win, you have to eat the king. Yup. 
+  * Castling and "en passant" have been intentionally left out of
+     the game to make it harder. 100% intended.
+  * You can jump over other pieces, unless you buy the Rules DLC (coming soon)
 
 ## Language and libraries
 

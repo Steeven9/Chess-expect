@@ -39,6 +39,9 @@
 ; Interpretation: a coordinate on the chessboard.
 (define-struct pos [x y] #:transparent)
 
+; A Direction is one of 'North, 'West, 'South, 'East.
+; Interpretation: a direction respective to a point on the board.
+
 ; A World is a (make-world pieces pos1 pos2 turn pick1 pick2 moving) where:
 ; - pieces is a List<Piece>,
 ; - pos1, pos2 are Position,
@@ -405,7 +408,7 @@
 ; Returns #true if the piece can be dropped here, #false otherwise.
 (define (can-drop-here w)
   (if (= 1 (world-turn w))
-      ; Is there already a piece?
+      ; Player 1 - Is there already a piece?
       (if (piece? (get-piece (world-pieces w) (world-pos1 w)))
           ; Yes - Is it a white piece?
           (if (symbol=? 'white (piece-color (get-piece (world-pieces w)
@@ -435,10 +438,10 @@
                          #true
                          #false)]
                     [(symbol=? 'Pawn (piece-type (get-piece (world-pieces w)
-                                                         (world-moving w))))
-                 (if (= (get-x-distance w) (get-y-distance w) 1)
-                     #true
-                     #false)]
+                                                            (world-moving w))))
+                     (if (= (get-x-distance w) (get-y-distance w) 1)
+                         #true
+                         #false)]
                     [else #true]))
           ; No - Can I drop here?
           (cond [(symbol=? 'Knight (piece-type (get-piece (world-pieces w)
@@ -460,12 +463,72 @@
                      #true
                      #false)]
                 [(symbol=? 'Pawn (piece-type (get-piece (world-pieces w)
-                                                         (world-moving w))))
+                                                        (world-moving w))))
                  (if (= 0 (get-x-distance w))
                      #true
                      #false)]
                 [else #true]))
-      #false))
+      
+      ; Player 2 - Is there already a piece?
+      (if (piece? (get-piece (world-pieces w) (world-pos2 w)))
+          ; Yes - Is it a black piece?
+          (if (symbol=? 'black (piece-color (get-piece (world-pieces w)
+                                                       (world-pos2 w))))
+              ; Yes - Is it the same?
+              (if (eq? (get-piece (world-pieces w) (world-pos2 w))
+                       (get-piece (world-pieces w) (world-moving w)))
+                  #true
+                  #false)
+              ; No - Can I eat it?
+              (cond [(symbol=? 'Knight (piece-type (get-piece (world-pieces w)
+                                                              (world-moving w))))
+                     (if (or (and (= 1 (get-x-distance w)) (= 2 (get-y-distance w)))
+                             (and (= 2 (get-x-distance w)) (= 1 (get-y-distance w))))
+                         #true
+                         #false)]
+                    [(symbol=? 'Bishop (piece-type (get-piece (world-pieces w)
+                                                              (world-moving w))))
+                     (if (= (get-x-distance w) (get-y-distance w))
+                         #true
+                         #false)]
+                    [(symbol=? 'Queen (piece-type (get-piece (world-pieces w)
+                                                             (world-moving w))))
+                     (if (or (= (get-x-distance w) (get-y-distance w))
+                             (= 0 (get-x-distance w))
+                             (= 0 (get-y-distance w)))
+                         #true
+                         #false)]
+                    [(symbol=? 'Pawn (piece-type (get-piece (world-pieces w)
+                                                            (world-moving w))))
+                     (if (= (get-x-distance w) (get-y-distance w) 1)
+                         #true
+                         #false)]
+                    [else #true]))
+          ; No - Can I drop here?
+          (cond [(symbol=? 'Knight (piece-type (get-piece (world-pieces w)
+                                                          (world-moving w))))
+                 (if (or (and (= 1 (get-x-distance w)) (= 2 (get-y-distance w)))
+                         (and (= 2 (get-x-distance w)) (= 1 (get-y-distance w))))
+                     #true
+                     #false)]
+                [(symbol=? 'Bishop (piece-type (get-piece (world-pieces w)
+                                                          (world-moving w))))
+                 (if (= (get-x-distance w) (get-y-distance w))
+                     #true
+                     #false)]
+                [(symbol=? 'Queen (piece-type (get-piece (world-pieces w)
+                                                         (world-moving w))))
+                 (if (or (= (get-x-distance w) (get-y-distance w))
+                         (= 0 (get-x-distance w))
+                         (= 0 (get-y-distance w)))
+                     #true
+                     #false)]
+                [(symbol=? 'Pawn (piece-type (get-piece (world-pieces w)
+                                                        (world-moving w))))
+                 (if (= 0 (get-x-distance w))
+                     #true
+                     #false)]
+                [else #true]))))
 
 ; Tests
 (check-expect (can-drop-here INITIAL-WORLD) #false)
@@ -486,6 +549,60 @@
                                          (make-pos 1 0)))
               #false)
 
+
+; inside-bound: Direction Position -> Boolean
+; Returns #true if the next move will stay inside the bound specified by the direction.
+(define (inside-bound dir pos)
+  (cond [(symbol=? 'North dir)
+         (if (< 0 (pos-y pos))
+             #true
+             #false)]
+        [(symbol=? 'West dir)
+         (if (< 0 (pos-x pos))
+             #true
+             #false)]
+        [(symbol=? 'South dir)
+         (if (> 7 (pos-y pos))
+             #true
+             #false)]
+        [(symbol=? 'East dir)
+         (if (> 7 (pos-x pos))
+             #true
+             #false)]))
+         
+; Tests
+(check-expect (inside-bound 'North (make-pos 3 2)) #true)
+(check-expect (inside-bound 'South (make-pos 4 7)) #false)
+
+
+; move-curs: Direction World -> World
+; Moves the cursor by one in the direction specified.
+(define (move-curs dir w)
+  (if (= 1 (world-turn w))
+      (cond [(symbol=? 'North dir)
+             (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
+                                                  (sub1 (pos-y (world-pos1 w))))])]
+            [(symbol=? 'West dir)
+             (struct-copy world w [pos1 (make-pos (sub1 (pos-x (world-pos1 w)))
+                                                  (pos-y (world-pos1 w)))])]
+            [(symbol=? 'South dir)
+             (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
+                                                  (add1 (pos-y (world-pos1 w))))])]
+            [(symbol=? 'East dir)
+             (struct-copy world w [pos1 (make-pos (add1 (pos-x (world-pos1 w)))
+                                                  (pos-y (world-pos1 w)))])])
+      (cond [(symbol=? 'North dir)
+             (struct-copy world w [pos2 (make-pos (pos-x (world-pos2 w))
+                                                  (sub1 (pos-y (world-pos2 w))))])]
+            [(symbol=? 'West dir)
+             (struct-copy world w [pos2 (make-pos (sub1 (pos-x (world-pos2 w)))
+                                                  (pos-y (world-pos2 w)))])]
+            [(symbol=? 'South dir)
+             (struct-copy world w [pos2 (make-pos (pos-x (world-pos2 w))
+                                                  (add1 (pos-y (world-pos2 w))))])]
+            [(symbol=? 'East dir)
+             (struct-copy world w [pos2 (make-pos (add1 (pos-x (world-pos2 w)))
+                                                  (pos-y (world-pos2 w)))])])))
 
 ; would-eat: World -> Boolean
 ; Returns #true if the current move would eat a piece, #false otherwise.
@@ -615,87 +732,74 @@
                        (if (= 6 (pos-y (world-moving w)))
                            (if (and (or (> 2 (get-y-distance w))
                                         (> (pos-y (world-pos1 w)) (pos-y (world-moving w))))
-                                    (< 0 (pos-y (world-pos1 w))))
-                               (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
-                                                                    (sub1 (pos-y (world-pos1 w))))])
+                                    (inside-bound 'North (world-pos1 w)))
+                               (move-curs 'North w)
                                w)
                            (if (and (or (> 1 (get-y-distance w))
                                         (> (pos-y (world-pos1 w)) (pos-y (world-moving w))))
-                                    (< 0 (pos-y (world-pos1 w))))
-                               (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
-                                                                    (sub1 (pos-y (world-pos1 w))))])
+                                    (inside-bound 'North (world-pos1 w)))
+                               (move-curs 'North w)
                                w))]
                       [(key=? key "a")
                        (if (and (or (> 1 (get-x-distance w))
                                     (> (pos-x (world-pos1 w)) (pos-x (world-moving w))))
-                                (< 0 (pos-x (world-pos1 w))))
-                           (struct-copy world w [pos1 (make-pos (sub1 (pos-x (world-pos1 w)))
-                                                                (pos-y (world-pos1 w)))])
+                                (inside-bound 'West (world-pos1 w)))
+                           (move-curs 'West w)
                            w)]
                       [(key=? key "s")
                        (if (and (< (pos-y (world-pos1 w)) (pos-y (world-moving w)))
-                                (> 7 (pos-y (world-pos1 w))))
-                           (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
-                                                                (add1 (pos-y (world-pos1 w))))])
+                                (inside-bound 'South (world-pos1 w)))
+                           (move-curs 'South w)
                            w)]
                       [(key=? key "d")
                        (if (and (or (> 1 (get-x-distance w))
                                     (< (pos-x (world-pos1 w)) (pos-x (world-moving w))))
-                                (> 7 (pos-x (world-pos1 w))))
-                           (struct-copy world w [pos1 (make-pos (add1 (pos-x (world-pos1 w)))
-                                                                (pos-y (world-pos1 w)))])
+                                (inside-bound 'East (world-pos1 w)))
+                           (move-curs 'East w)
                            w)]
                       [else w])]
                [(symbol=? 'King (piece-type (get-piece (world-pieces w) (world-moving w))))
                 (cond [(key=? key "w")
                        (if (and (or (> 1 (get-y-distance w))
                                     (> (pos-y (world-pos1 w)) (pos-y (world-moving w))))
-                                (< 0 (pos-y (world-pos1 w))))
-                           (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
-                                                                (sub1 (pos-y (world-pos1 w))))])
+                                (inside-bound 'North (world-pos1 w)))
+                           (move-curs 'North w)
                            w)]
                       [(key=? key "a")
                        (if (and (or (> 1 (get-x-distance w))
                                     (> (pos-x (world-pos1 w)) (pos-x (world-moving w))))
-                                (< 0 (pos-x (world-pos1 w))))
-                           (struct-copy world w [pos1 (make-pos (sub1 (pos-x (world-pos1 w)))
-                                                                (pos-y (world-pos1 w)))])
+                                (inside-bound 'West (world-pos1 w)))
+                           (move-curs 'West w)
                            w)]
                       [(key=? key "s")
                        (if (and (or (> 1 (get-y-distance w))
                                     (< (pos-y (world-pos1 w)) (pos-y (world-moving w))))
-                                (> 7 (pos-y (world-pos1 w))))
-                           (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
-                                                                (add1 (pos-y (world-pos1 w))))])
+                                (inside-bound 'South (world-pos1 w)))
+                           (move-curs 'South w)
                            w)]
                       [(key=? key "d")
                        (if (and (or (> 1 (get-x-distance w))
                                     (< (pos-x (world-pos1 w)) (pos-x (world-moving w))))
-                                (> 7 (pos-x (world-pos1 w))))
-                           (struct-copy world w [pos1 (make-pos (add1 (pos-x (world-pos1 w)))
-                                                                (pos-y (world-pos1 w)))])
+                                (inside-bound 'East (world-pos1 w)))
+                           (move-curs 'East w)
                            w)]
                       [else w])]
                [(symbol=? 'Rook (piece-type (get-piece (world-pieces w) (world-moving w))))
                 (cond [(key=? key "w")
-                       (if (and (= 0 (get-x-distance w)) (< 0 (pos-y (world-pos1 w))))
-                           (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
-                                                                (sub1 (pos-y (world-pos1 w))))])
+                       (if (and (= 0 (get-x-distance w)) (inside-bound 'North (world-pos1 w)))
+                           (move-curs 'North w)
                            w)]
                       [(key=? key "a")
-                       (if (and (= 0 (get-y-distance w)) (< 0 (pos-x (world-pos1 w))))
-                           (struct-copy world w [pos1 (make-pos (sub1 (pos-x (world-pos1 w)))
-                                                                (pos-y (world-pos1 w)))])
+                       (if (and (= 0 (get-y-distance w)) (inside-bound 'West (world-pos1 w)))
+                           (move-curs 'West w)
                            w)]
                       [(key=? key "s")
-                       (if (and (= 0 (get-x-distance w)) (> 7 (pos-y (world-pos1 w))))
-                           (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
-                                                                (add1 (pos-y (world-pos1 w))))])
+                       (if (and (= 0 (get-x-distance w)) (inside-bound 'South (world-pos1 w)))
+                           (move-curs 'South w)
                            w)]
                       [(key=? key "d")
-                       (if (and (= 0 (get-y-distance w)) (> 7 (pos-x (world-pos1 w))))
-                           (struct-copy world w [pos1 (make-pos (add1 (pos-x (world-pos1 w)))
-                                                                (pos-y (world-pos1 w)))])
+                       (if (and (= 0 (get-y-distance w)) (inside-bound 'East (world-pos1 w)))
+                           (move-curs 'East w)
                            w)]
                       [else w])]
                [(symbol=? 'Knight (piece-type (get-piece (world-pieces w) (world-moving w))))
@@ -703,121 +807,102 @@
                        (if (= 2 (get-x-distance w))
                            (if (and (or (> 1 (get-y-distance w))
                                         (> (pos-y (world-pos1 w)) (pos-y (world-moving w))))
-                                    (< 0 (pos-y (world-pos1 w))))
-                               (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
-                                                                    (sub1 (pos-y (world-pos1 w))))])
+                                    (inside-bound 'North (world-pos1 w)))
+                               (move-curs 'North w)
                                w)
                            (if (and (or (> 2 (get-y-distance w))
                                         (> (pos-y (world-pos1 w)) (pos-y (world-moving w))))
-                                    (< 0 (pos-y (world-pos1 w))))
-                               (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
-                                                                    (sub1 (pos-y (world-pos1 w))))])
+                                    (inside-bound 'North (world-pos1 w)))
+                               (move-curs 'North w)
                                w))]
                       [(key=? key "a")
                        (if (= 2 (get-y-distance w))
                            (if (and (or (> 1 (get-x-distance w))
                                         (> (pos-x (world-pos1 w)) (pos-x (world-moving w))))
-                                    (< 0 (pos-x (world-pos1 w))))
-                               (struct-copy world w [pos1 (make-pos (sub1 (pos-x (world-pos1 w)))
-                                                                    (pos-y (world-pos1 w)))])
+                                    (inside-bound 'West (world-pos1 w)))
+                               (move-curs 'West w)
                                w)
                            (if (and (or (> 2 (get-x-distance w))
                                         (> (pos-x (world-pos1 w)) (pos-x (world-moving w))))
-                                    (< 0 (pos-x (world-pos1 w))))
-                               (struct-copy world w [pos1 (make-pos (sub1 (pos-x (world-pos1 w)))
-                                                                    (pos-y (world-pos1 w)))])
+                                    (inside-bound 'West (world-pos1 w)))
+                               (move-curs 'West w)
                                w))]
                       [(key=? key "s")
                        (if (= 2 (get-x-distance w))
                            (if (and (or (> 1 (get-y-distance w))
                                         (< (pos-y (world-pos1 w)) (pos-y (world-moving w))))
-                                    (> 7 (pos-y (world-pos1 w))))
-                               (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
-                                                                    (add1 (pos-y (world-pos1 w))))])
+                                    (inside-bound 'South (world-pos1 w)))
+                               (move-curs 'South w)
                                w)
                            (if (and (or (> 2 (get-y-distance w))
                                         (< (pos-y (world-pos1 w)) (pos-y (world-moving w))))
-                                    (> 7 (pos-y (world-pos1 w))))
-                               (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
-                                                                    (add1 (pos-y (world-pos1 w))))])
+                                    (inside-bound 'South (world-pos1 w)))
+                               (move-curs 'South w)
                                w))]
                       [(key=? key "d")
                        (if (= 2 (get-y-distance w))
                            (if (and (or (> 1 (get-x-distance w))
                                         (< (pos-x (world-pos1 w)) (pos-x (world-moving w))))
-                                    (> 7 (pos-x (world-pos1 w))))
-                               (struct-copy world w [pos1 (make-pos (add1 (pos-x (world-pos1 w)))
-                                                                    (pos-y (world-pos1 w)))])
+                                    (inside-bound 'East (world-pos1 w)))
+                               (move-curs 'East w)
                                w)
                            (if (and (or (> 2 (get-x-distance w))
                                         (< (pos-x (world-pos1 w)) (pos-x (world-moving w))))
-                                    (> 7 (pos-x (world-pos1 w))))
-                               (struct-copy world w [pos1 (make-pos (add1 (pos-x (world-pos1 w)))
-                                                                    (pos-y (world-pos1 w)))])
+                                    (inside-bound 'East (world-pos1 w)))
+                               (move-curs 'East w)
                                w))]
                       [else w])]
                [(symbol=? 'Bishop (piece-type (get-piece (world-pieces w) (world-moving w))))
                 (cond [(key=? key "w")
-                       (if (< 0 (pos-y (world-pos1 w)))
-                           (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
-                                                                (sub1 (pos-y (world-pos1 w))))])
+                       (if (inside-bound 'North (world-pos1 w))
+                           (move-curs 'North w)
                            w)]
                       [(key=? key "a")
-                       (if (< 0 (pos-x (world-pos1 w)))
-                           (struct-copy world w [pos1 (make-pos (sub1 (pos-x (world-pos1 w)))
-                                                                (pos-y (world-pos1 w)))])
+                       (if (inside-bound 'West (world-pos1 w))
+                           (move-curs 'West w)
                            w)]
                       [(key=? key "s")
-                       (if (> 7 (pos-y (world-pos1 w)))
-                           (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
-                                                                (add1 (pos-y (world-pos1 w))))])
+                       (if (inside-bound 'South (world-pos1 w))
+                           (move-curs 'South w)
                            w)]
                       [(key=? key "d")
-                       (if (> 7 (pos-x (world-pos1 w)))
-                           (struct-copy world w [pos1 (make-pos (add1 (pos-x (world-pos1 w)))
-                                                                (pos-y (world-pos1 w)))])
+                       (if (inside-bound 'East (world-pos1 w))
+                           (move-curs 'East w)
                            w)]
                       [else w])]
                [(symbol=? 'Queen (piece-type (get-piece (world-pieces w) (world-moving w))))
                 (cond [(key=? key "w")
-                       (if (< 0 (pos-y (world-pos1 w)))
-                           (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
-                                                                (sub1 (pos-y (world-pos1 w))))])
+                       (if (inside-bound 'North (world-pos1 w))
+                           (move-curs 'North w)
                            w)]
                       [(key=? key "a")
-                       (if (< 0 (pos-x (world-pos1 w)))
-                           (struct-copy world w [pos1 (make-pos (sub1 (pos-x (world-pos1 w)))
-                                                                (pos-y (world-pos1 w)))])
+                       (if (inside-bound 'West (world-pos1 w))
+                           (move-curs 'West w)
                            w)]
                       [(key=? key "s")
-                       (if (> 7 (pos-y (world-pos1 w)))
-                           (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
-                                                                (add1 (pos-y (world-pos1 w))))])
+                       (if (inside-bound 'South (world-pos1 w))
+                           (move-curs 'South w)
                            w)]
                       [(key=? key "d")
-                       (if (> 7 (pos-x (world-pos1 w)))
-                           (struct-copy world w [pos1 (make-pos (add1 (pos-x (world-pos1 w)))
-                                                                (pos-y (world-pos1 w)))])
+                       (if (inside-bound 'East (world-pos1 w))
+                           (move-curs 'East w)
                            w)]
                       [else w])]
                [else w])
          ; Free movement
          (cond 
-           [(and (key=? key "w") (< 0 (pos-y (world-pos1 w))))
-            (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
-                                                 (sub1 (pos-y (world-pos1 w))))])]
+           [(and (key=? key "w") (inside-bound 'North (world-pos1 w)))
+            (move-curs 'North w)]
+            
+           [(and (key=? key "s") (inside-bound 'South (world-pos1 w)))
+            (move-curs 'South w)]
+            
+           [(and (key=? key "a") (inside-bound 'West (world-pos1 w)))
+            (move-curs 'West w)]
 
-           [(and (key=? key "s") (> 7 (pos-y (world-pos1 w))))
-            (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
-                                                 (add1 (pos-y (world-pos1 w))))])]
-
-           [(and (key=? key "a") (< 0 (pos-x (world-pos1 w))))
-            (struct-copy world w [pos1 (make-pos (sub1 (pos-x (world-pos1 w)))
-                                                 (pos-y (world-pos1 w)))])]
-
-           [(and (key=? key "d") (> 7 (pos-x (world-pos1 w))))
-            (struct-copy world w [pos1 (make-pos (add1 (pos-x (world-pos1 w)))
-                                                 (pos-y (world-pos1 w)))])]
+           [(and (key=? key "d") (inside-bound 'East (world-pos1 w)))
+            (move-curs 'East w)]
+           
            ; Pick up a piece
            [(key=? key " ")
             (if (piece? (get-piece (world-pieces w) (world-pos1 w)))
@@ -834,7 +919,217 @@
 
     ; Player 2 movement
     [(= 2 (world-turn w))
-     (struct-copy world w [turn 1])]
+     (if (world-pick2 w)
+         ; Movement with piece selected
+         (cond [(key=? key " ")
+                ; Try to drop the piece
+                (if (can-drop-here w)
+                    (if (would-eat w)
+                        (eat-piece w)
+                        (if (and (= 0 (get-x-distance w)) (= 0 (get-y-distance w)))
+                            (struct-copy world w [pick2 #false])
+                            (struct-copy world w
+                                         [pieces (cons (make-piece 'black
+                                                                   (piece-type (get-piece (world-pieces w)
+                                                                                          (world-moving w)))
+                                                                   (world-pos2 w))
+                                                       (remove (get-piece
+                                                                (world-pieces w)
+                                                                (world-moving w))
+                                                               (world-pieces w)))]
+                                         [turn 1]
+                                         [pick2 #false])))
+                    w)]
+               ; Move the piece around
+               [(symbol=? 'Pawn (piece-type (get-piece (world-pieces w) (world-moving w))))
+                (cond [(key=? key "s")
+                       (if (= 1 (pos-y (world-moving w)))
+                           (if (and (or (> 2 (get-y-distance w))
+                                        (< (pos-y (world-pos2 w)) (pos-y (world-moving w))))
+                                    (inside-bound 'South (world-pos2 w)))
+                               (move-curs 'South w)
+                               w)
+                           (if (and (or (> 1 (get-y-distance w))
+                                        (< (pos-y (world-pos2 w)) (pos-y (world-moving w))))
+                                    (inside-bound 'South (world-pos2 w)))
+                               (move-curs 'South w)
+                               w))]
+                      [(key=? key "a")
+                       (if (and (or (> 1 (get-x-distance w))
+                                    (> (pos-x (world-pos2 w)) (pos-x (world-moving w))))
+                                (inside-bound 'West (world-pos2 w)))
+                           (move-curs 'West w)
+                           w)]
+                      [(key=? key "w")
+                       (if (and (> (pos-y (world-pos2 w)) (pos-y (world-moving w)))
+                                (inside-bound 'North (world-pos2 w)))
+                           (move-curs 'North w)
+                           w)]
+                      [(key=? key "d")
+                       (if (and (or (> 1 (get-x-distance w))
+                                    (< (pos-x (world-pos2 w)) (pos-x (world-moving w))))
+                                (inside-bound 'East (world-pos2 w)))
+                           (move-curs 'East w)
+                           w)]
+                      [else w])]
+               [(symbol=? 'King (piece-type (get-piece (world-pieces w) (world-moving w))))
+                (cond [(key=? key "w")
+                       (if (and (or (> 1 (get-y-distance w))
+                                    (> (pos-y (world-pos2 w)) (pos-y (world-moving w))))
+                                (inside-bound 'North (world-pos2 w)))
+                           (move-curs 'North w)
+                           w)]
+                      [(key=? key "a")
+                       (if (and (or (> 1 (get-x-distance w))
+                                    (> (pos-x (world-pos2 w)) (pos-x (world-moving w))))
+                                (inside-bound 'West (world-pos2 w)))
+                           (move-curs 'West w)
+                           w)]
+                      [(key=? key "s")
+                       (if (and (or (> 1 (get-y-distance w))
+                                    (< (pos-y (world-pos2 w)) (pos-y (world-moving w))))
+                                (inside-bound 'South (world-pos2 w)))
+                           (move-curs 'South w)
+                           w)]
+                      [(key=? key "d")
+                       (if (and (or (> 1 (get-x-distance w))
+                                    (< (pos-x (world-pos2 w)) (pos-x (world-moving w))))
+                                (inside-bound 'East (world-pos2 w)))
+                           (move-curs 'East w)
+                           w)]
+                      [else w])]
+               [(symbol=? 'Rook (piece-type (get-piece (world-pieces w) (world-moving w))))
+                (cond [(key=? key "w")
+                       (if (and (= 0 (get-x-distance w)) (inside-bound 'North (world-pos2 w)))
+                           (move-curs 'North w)
+                           w)]
+                      [(key=? key "a")
+                       (if (and (= 0 (get-y-distance w)) (inside-bound 'West (world-pos2 w)))
+                           (move-curs 'West w)
+                           w)]
+                      [(key=? key "s")
+                       (if (and (= 0 (get-x-distance w)) (inside-bound 'South (world-pos2 w)))
+                           (move-curs 'South w)
+                           w)]
+                      [(key=? key "d")
+                       (if (and (= 0 (get-y-distance w)) (inside-bound 'East (world-pos2 w)))
+                           (move-curs 'East w)
+                           w)]
+                      [else w])]
+               [(symbol=? 'Knight (piece-type (get-piece (world-pieces w) (world-moving w))))
+                (cond [(key=? key "w")
+                       (if (= 2 (get-x-distance w))
+                           (if (and (or (> 1 (get-y-distance w))
+                                        (> (pos-y (world-pos2 w)) (pos-y (world-moving w))))
+                                    (inside-bound 'North (world-pos2 w)))
+                               (move-curs 'North w)
+                               w)
+                           (if (and (or (> 2 (get-y-distance w))
+                                        (> (pos-y (world-pos2 w)) (pos-y (world-moving w))))
+                                    (inside-bound 'North (world-pos2 w)))
+                               (move-curs 'North w)
+                               w))]
+                      [(key=? key "a")
+                       (if (= 2 (get-y-distance w))
+                           (if (and (or (> 1 (get-x-distance w))
+                                        (> (pos-x (world-pos2 w)) (pos-x (world-moving w))))
+                                    (inside-bound 'West (world-pos2 w)))
+                               (move-curs 'West w)
+                               w)
+                           (if (and (or (> 2 (get-x-distance w))
+                                        (> (pos-x (world-pos2 w)) (pos-x (world-moving w))))
+                                    (inside-bound 'West (world-pos2 w)))
+                               (move-curs 'West w)
+                               w))]
+                      [(key=? key "s")
+                       (if (= 2 (get-x-distance w))
+                           (if (and (or (> 1 (get-y-distance w))
+                                        (< (pos-y (world-pos2 w)) (pos-y (world-moving w))))
+                                    (inside-bound 'South (world-pos2 w)))
+                               (move-curs 'South w)
+                               w)
+                           (if (and (or (> 2 (get-y-distance w))
+                                        (< (pos-y (world-pos2 w)) (pos-y (world-moving w))))
+                                    (inside-bound 'South (world-pos2 w)))
+                               (move-curs 'South w)
+                               w))]
+                      [(key=? key "d")
+                       (if (= 2 (get-y-distance w))
+                           (if (and (or (> 1 (get-x-distance w))
+                                        (< (pos-x (world-pos2 w)) (pos-x (world-moving w))))
+                                    (inside-bound 'East (world-pos2 w)))
+                               (move-curs 'East w)
+                               w)
+                           (if (and (or (> 2 (get-x-distance w))
+                                        (< (pos-x (world-pos2 w)) (pos-x (world-moving w))))
+                                    (inside-bound 'East (world-pos2 w)))
+                               (move-curs 'East w)
+                               w))]
+                      [else w])]
+               [(symbol=? 'Bishop (piece-type (get-piece (world-pieces w) (world-moving w))))
+                (cond [(key=? key "w")
+                       (if (inside-bound 'North (world-pos2 w))
+                           (move-curs 'North w)
+                           w)]
+                      [(key=? key "a")
+                       (if (inside-bound 'West (world-pos2 w))
+                           (move-curs 'West w)
+                           w)]
+                      [(key=? key "s")
+                       (if (inside-bound 'South (world-pos2 w))
+                           (move-curs 'South w)
+                           w)]
+                      [(key=? key "d")
+                       (if (inside-bound 'East (world-pos2 w))
+                           (move-curs 'East w)
+                           w)]
+                      [else w])]
+               [(symbol=? 'Queen (piece-type (get-piece (world-pieces w) (world-moving w))))
+                (cond [(key=? key "w")
+                       (if (inside-bound 'North (world-pos2 w))
+                           (move-curs 'North w)
+                           w)]
+                      [(key=? key "a")
+                       (if (inside-bound 'West (world-pos2 w))
+                           (move-curs 'West w)
+                           w)]
+                      [(key=? key "s")
+                       (if (inside-bound 'South (world-pos2 w))
+                           (move-curs 'South w)
+                           w)]
+                      [(key=? key "d")
+                       (if (inside-bound 'East (world-pos2 w))
+                           (move-curs 'East w)
+                           w)]
+                      [else w])]
+               [else w])
+         ; Free movement
+         (cond 
+           [(and (key=? key "w") (inside-bound 'North (world-pos2 w)))
+            (move-curs 'North w)]
+            
+           [(and (key=? key "s") (inside-bound 'South (world-pos2 w)))
+            (move-curs 'South w)]
+            
+           [(and (key=? key "a") (inside-bound 'West (world-pos2 w)))
+            (move-curs 'West w)]
+
+           [(and (key=? key "d") (inside-bound 'East (world-pos2 w)))
+            (move-curs 'East w)]
+           
+           ; Pick up a piece
+           [(key=? key " ")
+            (if (piece? (get-piece (world-pieces w) (world-pos2 w)))
+                (if (symbol=? 'black (piece-color (get-piece (world-pieces w)
+                                                             (world-pos2 w))))
+                    ; If color is right, remember the piece the player picked up
+                    (struct-copy world w
+                                 [pick2 #true]
+                                 [moving (world-pos2 w)])
+                    w)
+                w)]
+            
+           [else w]))]
    
     ; Nothing
     [else w]))

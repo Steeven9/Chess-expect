@@ -43,8 +43,9 @@ Realized I had swapped the king and queen all along
 Removed some magic numbers and improved responsiveness (why do I even bother)
 
 Dec 17
-TODO: executables
-TODO: check for jumping over pieces (except knight)
+Packed the executables
+Cleanup
+Added player 2 part
 
 
 Differences with the initial idea:
