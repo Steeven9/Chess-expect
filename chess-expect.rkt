@@ -10,14 +10,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;   0 1 2 3 4 5 6 7
-; 0 R K B K Q B K R
+; 0 R K B Q K B K R
 ; 1 P P P P P P P P
 ; 2
 ; 3
 ; 4
 ; 5
 ; 6 P P P P P P P P
-; 7 R K B K Q B K R
+; 7 R K B Q K B K R
 ;   0 1 2 3 4 5 6 7
 
 
@@ -61,11 +61,11 @@
 ; Constants
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; Screen width
+; Screen width (native, tested and suggested is 800 px)
 (define WIDTH 800)
 
-; Screen height
-(define HEIGHT 800)
+; Screen height (must be same as width)
+(define HEIGHT WIDTH)
 
 ; The default piece list
 (define PIECE-LIST (list (make-piece 'white 'Pawn (make-pos 0 6))
@@ -79,8 +79,8 @@
                          (make-piece 'white 'Rook (make-pos 0 7))
                          (make-piece 'white 'Knight (make-pos 1 7))
                          (make-piece 'white 'Bishop (make-pos 2 7))
-                         (make-piece 'white 'King (make-pos 3 7))
-                         (make-piece 'white 'Queen (make-pos 4 7))
+                         (make-piece 'white 'Queen (make-pos 3 7))                         
+                         (make-piece 'white 'King (make-pos 4 7))
                          (make-piece 'white 'Bishop (make-pos 5 7))
                          (make-piece 'white 'Knight (make-pos 6 7))
                          (make-piece 'white 'Rook (make-pos 7 7))
@@ -95,8 +95,8 @@
                          (make-piece 'black 'Rook (make-pos 0 0))
                          (make-piece 'black 'Knight (make-pos 1 0))
                          (make-piece 'black 'Bishop (make-pos 2 0))
-                         (make-piece 'black 'King (make-pos 3 0))
-                         (make-piece 'black 'Queen (make-pos 4 0))
+                         (make-piece 'black 'Queen (make-pos 3 0))
+                         (make-piece 'black 'King (make-pos 4 0))
                          (make-piece 'black 'Bishop (make-pos 5 0))
                          (make-piece 'black 'Knight (make-pos 6 0))
                          (make-piece 'black 'Rook (make-pos 7 0))))
@@ -104,8 +104,8 @@
 ; Initial world.
 ; Starting positions are the king's coordinates, player1 (white) moves first.
 (define INITIAL-WORLD (make-world PIECE-LIST
-                                  (make-pos 3 7)
-                                  (make-pos 3 0)
+                                  (make-pos 4 7)
+                                  (make-pos 4 0)
                                   1
                                   #false
                                   #false
@@ -220,7 +220,11 @@
                                         (symbol->string (piece-color p))
                                         (symbol->string (piece-type p))
                                         ".png"))]
-    (place-image (bitmap/file source)
+    (place-image (if (= WIDTH 800)
+                     (bitmap/file source)
+                     (scale (/ (/ WIDTH 8)
+                               (image-width (bitmap/file source)))
+                            (bitmap/file source)))
                  (tile-x (piece-pos p))
                  (tile-y (piece-pos p))
                  img)))
@@ -238,19 +242,19 @@
 (define (draw-text w img)
   (cond [(= 3 (world-turn w))
          (place-image P1-WIN
-                      400
-                      400
+                      (/ WIDTH 2)
+                      (/ HEIGHT 2)
                       (place-image THANKS-TEXT
-                                   400
-                                   850
+                                   (/ WIDTH 2)
+                                   (+ 50 HEIGHT)
                                    img))]
         [(= 4 (world-turn w))
          (place-image P2-WIN
-                      400
-                      400
+                      (/ WIDTH 2)
+                      (/ HEIGHT 2)
                       (place-image THANKS-TEXT
-                                   400
-                                   850
+                                   (/ WIDTH 2)
+                                   (+ 50 HEIGHT)
                                    img))]
         [else
          (place-image/align (if (= 1 (world-turn w))
@@ -262,7 +266,7 @@
                                     (text "Player 2: choose piece" 24 'black)))
                             ; Bottom left
                             25
-                            850
+                            (+ 50 HEIGHT)
                             "left"
                             "middle"
                             (place-image/align (above (if (= 1 (world-turn w))
@@ -275,7 +279,7 @@
                                                       (text "Escape to restart match" 24 'black))
                                                ; Bottom right
                                                775
-                                               850
+                                               (+ 50 HEIGHT)
                                                "right"
                                                "middle"
                                                img))]))
@@ -286,16 +290,15 @@
 (define (draw-world w)
   (if (= 0 (world-turn w))
       (place-image MENU-COPYRIGHT
-                   400
-                   850
-                   (place-image MENU-LOGO
-                                400
-                                350
-                                (place-image MENU-TEXT
-                                             400
-                                             450
-                                             (draw-board 0
-                                                         (empty-scene WIDTH (+ 100 HEIGHT))))))
+                   (/ WIDTH 2)
+                   (+ 50 HEIGHT)
+                   (place-image/align (above MENU-LOGO MENU-TEXT)
+                                      (/ WIDTH 2)
+                                      (tile-y (make-pos 0 2))
+                                      'middle
+                                      'top
+                                      (draw-board 0
+                                                  (empty-scene WIDTH (+ 100 HEIGHT)))))
       (draw-text w
                  (draw-pieces (world-pieces w)
                               (draw-cursors w
@@ -401,37 +404,68 @@
 ; can-drop-here: World -> Boolean
 ; Returns #true if the piece can be dropped here, #false otherwise.
 (define (can-drop-here w)
-  (cond [(= 1 (world-turn w))
-         (if (piece? (get-piece (world-pieces w) (world-pos1 w)))
-             (if (symbol=? 'white (piece-color (get-piece (world-pieces w)
-                                                          (world-pos1 w))))
-                 (if (eq? (get-piece (world-pieces w) (world-pos1 w))
-                          (get-piece (world-pieces w) (world-moving w)))
+  (if (= 1 (world-turn w))
+      ; Is there already a piece?
+      (if (piece? (get-piece (world-pieces w) (world-pos1 w)))
+          ; Yes - Is it a white piece?
+          (if (symbol=? 'white (piece-color (get-piece (world-pieces w)
+                                                       (world-pos1 w))))
+              ; Yes - Is it the same?
+              (if (eq? (get-piece (world-pieces w) (world-pos1 w))
+                       (get-piece (world-pieces w) (world-moving w)))
+                  #true
+                  #false)
+              ; No - Can I eat it?
+              (cond [(symbol=? 'Knight (piece-type (get-piece (world-pieces w)
+                                                              (world-moving w))))
+                     (if (or (and (= 1 (get-x-distance w)) (= 2 (get-y-distance w)))
+                             (and (= 2 (get-x-distance w)) (= 1 (get-y-distance w))))
+                         #true
+                         #false)]
+                    [(symbol=? 'Bishop (piece-type (get-piece (world-pieces w)
+                                                              (world-moving w))))
+                     (if (= (get-x-distance w) (get-y-distance w))
+                         #true
+                         #false)]
+                    [(symbol=? 'Queen (piece-type (get-piece (world-pieces w)
+                                                             (world-moving w))))
+                     (if (or (= (get-x-distance w) (get-y-distance w))
+                             (= 0 (get-x-distance w))
+                             (= 0 (get-y-distance w)))
+                         #true
+                         #false)]
+                    [(symbol=? 'Pawn (piece-type (get-piece (world-pieces w)
+                                                         (world-moving w))))
+                 (if (= (get-x-distance w) (get-y-distance w) 1)
                      #true
-                     #false)
-                 #true)
-             (if (symbol=? 'Knight (piece-type (get-piece (world-pieces w)
+                     #false)]
+                    [else #true]))
+          ; No - Can I drop here?
+          (cond [(symbol=? 'Knight (piece-type (get-piece (world-pieces w)
                                                           (world-moving w))))
                  (if (or (and (= 1 (get-x-distance w)) (= 2 (get-y-distance w)))
                          (and (= 2 (get-x-distance w)) (= 1 (get-y-distance w))))
                      #true
-                     #false)
-                 #true))]
-        [else  (if (piece? (get-piece (world-pieces w) (world-pos2 w)))
-                   (if (symbol=? 'black (piece-color (get-piece (world-pieces w)
-                                                                (world-pos2 w))))
-                       (if (eq? (get-piece (world-pieces w) (world-pos2 w))
-                                (get-piece (world-pieces w) (world-moving w)))
-                           #true
-                           #false)
-                       #true)
-                   (if (symbol=? 'Knight (piece-type (get-piece (world-pieces w)
-                                                                (world-moving w))))
-                       (if (or (and (= 1 (get-x-distance w)) (= 2 (get-y-distance w)))
-                               (and (= 2 (get-x-distance w)) (= 1 (get-y-distance w))))
-                           #true
-                           #false)
-                       #true))]))
+                     #false)]
+                [(symbol=? 'Bishop (piece-type (get-piece (world-pieces w)
+                                                          (world-moving w))))
+                 (if (= (get-x-distance w) (get-y-distance w))
+                     #true
+                     #false)]
+                [(symbol=? 'Queen (piece-type (get-piece (world-pieces w)
+                                                         (world-moving w))))
+                 (if (or (= (get-x-distance w) (get-y-distance w))
+                         (= 0 (get-x-distance w))
+                         (= 0 (get-y-distance w)))
+                     #true
+                     #false)]
+                [(symbol=? 'Pawn (piece-type (get-piece (world-pieces w)
+                                                         (world-moving w))))
+                 (if (= 0 (get-x-distance w))
+                     #true
+                     #false)]
+                [else #true]))
+      #false))
 
 ; Tests
 (check-expect (can-drop-here INITIAL-WORLD) #false)
@@ -579,19 +613,37 @@
                [(symbol=? 'Pawn (piece-type (get-piece (world-pieces w) (world-moving w))))
                 (cond [(key=? key "w")
                        (if (= 6 (pos-y (world-moving w)))
-                           (if (and (> 2 (get-y-distance w)) (< 0 (pos-y (world-pos1 w))))
+                           (if (and (or (> 2 (get-y-distance w))
+                                        (> (pos-y (world-pos1 w)) (pos-y (world-moving w))))
+                                    (< 0 (pos-y (world-pos1 w))))
                                (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
                                                                     (sub1 (pos-y (world-pos1 w))))])
                                w)
-                           (if (and (> 1 (get-y-distance w)) (< 0 (pos-y (world-pos1 w))))
+                           (if (and (or (> 1 (get-y-distance w))
+                                        (> (pos-y (world-pos1 w)) (pos-y (world-moving w))))
+                                    (< 0 (pos-y (world-pos1 w))))
                                (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
                                                                     (sub1 (pos-y (world-pos1 w))))])
                                w))]
+                      [(key=? key "a")
+                       (if (and (or (> 1 (get-x-distance w))
+                                    (> (pos-x (world-pos1 w)) (pos-x (world-moving w))))
+                                (< 0 (pos-x (world-pos1 w))))
+                           (struct-copy world w [pos1 (make-pos (sub1 (pos-x (world-pos1 w)))
+                                                                (pos-y (world-pos1 w)))])
+                           w)]
                       [(key=? key "s")
                        (if (and (< (pos-y (world-pos1 w)) (pos-y (world-moving w)))
                                 (> 7 (pos-y (world-pos1 w))))
                            (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
                                                                 (add1 (pos-y (world-pos1 w))))])
+                           w)]
+                      [(key=? key "d")
+                       (if (and (or (> 1 (get-x-distance w))
+                                    (< (pos-x (world-pos1 w)) (pos-x (world-moving w))))
+                                (> 7 (pos-x (world-pos1 w))))
+                           (struct-copy world w [pos1 (make-pos (add1 (pos-x (world-pos1 w)))
+                                                                (pos-y (world-pos1 w)))])
                            w)]
                       [else w])]
                [(symbol=? 'King (piece-type (get-piece (world-pieces w) (world-moving w))))
@@ -704,6 +756,50 @@
                                                                     (pos-y (world-pos1 w)))])
                                w))]
                       [else w])]
+               [(symbol=? 'Bishop (piece-type (get-piece (world-pieces w) (world-moving w))))
+                (cond [(key=? key "w")
+                       (if (< 0 (pos-y (world-pos1 w)))
+                           (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
+                                                                (sub1 (pos-y (world-pos1 w))))])
+                           w)]
+                      [(key=? key "a")
+                       (if (< 0 (pos-x (world-pos1 w)))
+                           (struct-copy world w [pos1 (make-pos (sub1 (pos-x (world-pos1 w)))
+                                                                (pos-y (world-pos1 w)))])
+                           w)]
+                      [(key=? key "s")
+                       (if (> 7 (pos-y (world-pos1 w)))
+                           (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
+                                                                (add1 (pos-y (world-pos1 w))))])
+                           w)]
+                      [(key=? key "d")
+                       (if (> 7 (pos-x (world-pos1 w)))
+                           (struct-copy world w [pos1 (make-pos (add1 (pos-x (world-pos1 w)))
+                                                                (pos-y (world-pos1 w)))])
+                           w)]
+                      [else w])]
+               [(symbol=? 'Queen (piece-type (get-piece (world-pieces w) (world-moving w))))
+                (cond [(key=? key "w")
+                       (if (< 0 (pos-y (world-pos1 w)))
+                           (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
+                                                                (sub1 (pos-y (world-pos1 w))))])
+                           w)]
+                      [(key=? key "a")
+                       (if (< 0 (pos-x (world-pos1 w)))
+                           (struct-copy world w [pos1 (make-pos (sub1 (pos-x (world-pos1 w)))
+                                                                (pos-y (world-pos1 w)))])
+                           w)]
+                      [(key=? key "s")
+                       (if (> 7 (pos-y (world-pos1 w)))
+                           (struct-copy world w [pos1 (make-pos (pos-x (world-pos1 w))
+                                                                (add1 (pos-y (world-pos1 w))))])
+                           w)]
+                      [(key=? key "d")
+                       (if (> 7 (pos-x (world-pos1 w)))
+                           (struct-copy world w [pos1 (make-pos (add1 (pos-x (world-pos1 w)))
+                                                                (pos-y (world-pos1 w)))])
+                           w)]
+                      [else w])]
                [else w])
          ; Free movement
          (cond 
@@ -751,7 +847,3 @@
     [name "Chess-expect!"]
     [to-draw draw-world]
     [on-key handle-key]))
-
-
-; Launch big-bang
-(main 0)

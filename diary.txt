@@ -38,3 +38,21 @@ Dec 16
 Optimized some functions
 Added momvement checks
 Added the option of leaving the piece where it is without ending the turn
+Added icon from https://www.flaticon.com/authors/good-ware
+Realized I had swapped the king and queen all along
+Removed some magic numbers and improved responsiveness (why do I even bother)
+
+Dec 17
+TODO: executables
+TODO: check for jumping over pieces (except knight)
+
+
+Differences with the initial idea:
+
+  Draw checkboard with coordinates system - OK
+  Draw pieces - OK (used images)
+  Handle movmement for two players, each one with its own controls - OK
+  Highlight the tiles where a certain piece's movement is allowed - Dropped to focus on rest
+  Determine if a movement would eat another piece and keep track of points - OK, points missing but not essential
+
+  Added a funky menu-ish page
