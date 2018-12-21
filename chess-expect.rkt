@@ -142,7 +142,7 @@
 (define MENU-LOGO (bitmap "img/logo.png"))
 
 ; Copyright text at the bottom
-(define MENU-COPYRIGHT (text "Stefano Taillefert - PF1 Final Project" 16 'black))
+(define MENU-COPYRIGHT (text "Made by Stefano Taillefert" 16 'black))
 
 ; Victory image for player 1
 (define P1-WIN (above (overlay (text "Player 1 wins!" 32 'black)
@@ -942,7 +942,7 @@
                     w)]
                ; Move the piece around
                [(symbol=? 'Pawn (piece-type (get-piece (world-pieces w) (world-moving w))))
-                (cond [(key=? key "s")
+                (cond [(key=? key "down")
                        (if (= 1 (pos-y (world-moving w)))
                            (if (and (or (> 2 (get-y-distance w))
                                         (< (pos-y (world-pos2 w)) (pos-y (world-moving w))))
@@ -954,18 +954,18 @@
                                     (inside-bound 'South (world-pos2 w)))
                                (move-curs 'South w)
                                w))]
-                      [(key=? key "a")
+                      [(key=? key "left")
                        (if (and (or (> 1 (get-x-distance w))
                                     (> (pos-x (world-pos2 w)) (pos-x (world-moving w))))
                                 (inside-bound 'West (world-pos2 w)))
                            (move-curs 'West w)
                            w)]
-                      [(key=? key "w")
+                      [(key=? key "up")
                        (if (and (> (pos-y (world-pos2 w)) (pos-y (world-moving w)))
                                 (inside-bound 'North (world-pos2 w)))
                            (move-curs 'North w)
                            w)]
-                      [(key=? key "d")
+                      [(key=? key "right")
                        (if (and (or (> 1 (get-x-distance w))
                                     (< (pos-x (world-pos2 w)) (pos-x (world-moving w))))
                                 (inside-bound 'East (world-pos2 w)))
@@ -973,25 +973,25 @@
                            w)]
                       [else w])]
                [(symbol=? 'King (piece-type (get-piece (world-pieces w) (world-moving w))))
-                (cond [(key=? key "w")
+                (cond [(key=? key "up")
                        (if (and (or (> 1 (get-y-distance w))
                                     (> (pos-y (world-pos2 w)) (pos-y (world-moving w))))
                                 (inside-bound 'North (world-pos2 w)))
                            (move-curs 'North w)
                            w)]
-                      [(key=? key "a")
+                      [(key=? key "left")
                        (if (and (or (> 1 (get-x-distance w))
                                     (> (pos-x (world-pos2 w)) (pos-x (world-moving w))))
                                 (inside-bound 'West (world-pos2 w)))
                            (move-curs 'West w)
                            w)]
-                      [(key=? key "s")
+                      [(key=? key "down")
                        (if (and (or (> 1 (get-y-distance w))
                                     (< (pos-y (world-pos2 w)) (pos-y (world-moving w))))
                                 (inside-bound 'South (world-pos2 w)))
                            (move-curs 'South w)
                            w)]
-                      [(key=? key "d")
+                      [(key=? key "right")
                        (if (and (or (> 1 (get-x-distance w))
                                     (< (pos-x (world-pos2 w)) (pos-x (world-moving w))))
                                 (inside-bound 'East (world-pos2 w)))
@@ -999,25 +999,25 @@
                            w)]
                       [else w])]
                [(symbol=? 'Rook (piece-type (get-piece (world-pieces w) (world-moving w))))
-                (cond [(key=? key "w")
+                (cond [(key=? key "up")
                        (if (and (= 0 (get-x-distance w)) (inside-bound 'North (world-pos2 w)))
                            (move-curs 'North w)
                            w)]
-                      [(key=? key "a")
+                      [(key=? key "left")
                        (if (and (= 0 (get-y-distance w)) (inside-bound 'West (world-pos2 w)))
                            (move-curs 'West w)
                            w)]
-                      [(key=? key "s")
+                      [(key=? key "down")
                        (if (and (= 0 (get-x-distance w)) (inside-bound 'South (world-pos2 w)))
                            (move-curs 'South w)
                            w)]
-                      [(key=? key "d")
+                      [(key=? key "right")
                        (if (and (= 0 (get-y-distance w)) (inside-bound 'East (world-pos2 w)))
                            (move-curs 'East w)
                            w)]
                       [else w])]
                [(symbol=? 'Knight (piece-type (get-piece (world-pieces w) (world-moving w))))
-                (cond [(key=? key "w")
+                (cond [(key=? key "up")
                        (if (= 2 (get-x-distance w))
                            (if (and (or (> 1 (get-y-distance w))
                                         (> (pos-y (world-pos2 w)) (pos-y (world-moving w))))
@@ -1029,7 +1029,7 @@
                                     (inside-bound 'North (world-pos2 w)))
                                (move-curs 'North w)
                                w))]
-                      [(key=? key "a")
+                      [(key=? key "left")
                        (if (= 2 (get-y-distance w))
                            (if (and (or (> 1 (get-x-distance w))
                                         (> (pos-x (world-pos2 w)) (pos-x (world-moving w))))
@@ -1041,7 +1041,7 @@
                                     (inside-bound 'West (world-pos2 w)))
                                (move-curs 'West w)
                                w))]
-                      [(key=? key "s")
+                      [(key=? key "down")
                        (if (= 2 (get-x-distance w))
                            (if (and (or (> 1 (get-y-distance w))
                                         (< (pos-y (world-pos2 w)) (pos-y (world-moving w))))
@@ -1053,7 +1053,7 @@
                                     (inside-bound 'South (world-pos2 w)))
                                (move-curs 'South w)
                                w))]
-                      [(key=? key "d")
+                      [(key=? key "right")
                        (if (= 2 (get-y-distance w))
                            (if (and (or (> 1 (get-x-distance w))
                                         (< (pos-x (world-pos2 w)) (pos-x (world-moving w))))
@@ -1067,37 +1067,37 @@
                                w))]
                       [else w])]
                [(symbol=? 'Bishop (piece-type (get-piece (world-pieces w) (world-moving w))))
-                (cond [(key=? key "w")
+                (cond [(key=? key "up")
                        (if (inside-bound 'North (world-pos2 w))
                            (move-curs 'North w)
                            w)]
-                      [(key=? key "a")
+                      [(key=? key "left")
                        (if (inside-bound 'West (world-pos2 w))
                            (move-curs 'West w)
                            w)]
-                      [(key=? key "s")
+                      [(key=? key "down")
                        (if (inside-bound 'South (world-pos2 w))
                            (move-curs 'South w)
                            w)]
-                      [(key=? key "d")
+                      [(key=? key "right")
                        (if (inside-bound 'East (world-pos2 w))
                            (move-curs 'East w)
                            w)]
                       [else w])]
                [(symbol=? 'Queen (piece-type (get-piece (world-pieces w) (world-moving w))))
-                (cond [(key=? key "w")
+                (cond [(key=? key "up")
                        (if (inside-bound 'North (world-pos2 w))
                            (move-curs 'North w)
                            w)]
-                      [(key=? key "a")
+                      [(key=? key "left")
                        (if (inside-bound 'West (world-pos2 w))
                            (move-curs 'West w)
                            w)]
-                      [(key=? key "s")
+                      [(key=? key "down")
                        (if (inside-bound 'South (world-pos2 w))
                            (move-curs 'South w)
                            w)]
-                      [(key=? key "d")
+                      [(key=? key "right")
                        (if (inside-bound 'East (world-pos2 w))
                            (move-curs 'East w)
                            w)]
@@ -1105,16 +1105,16 @@
                [else w])
          ; Free movement
          (cond 
-           [(and (key=? key "w") (inside-bound 'North (world-pos2 w)))
+           [(and (key=? key "up") (inside-bound 'North (world-pos2 w)))
             (move-curs 'North w)]
             
-           [(and (key=? key "s") (inside-bound 'South (world-pos2 w)))
+           [(and (key=? key "down") (inside-bound 'South (world-pos2 w)))
             (move-curs 'South w)]
             
-           [(and (key=? key "a") (inside-bound 'West (world-pos2 w)))
+           [(and (key=? key "left") (inside-bound 'West (world-pos2 w)))
             (move-curs 'West w)]
 
-           [(and (key=? key "d") (inside-bound 'East (world-pos2 w)))
+           [(and (key=? key "right") (inside-bound 'East (world-pos2 w)))
             (move-curs 'East w)]
            
            ; Pick up a piece
@@ -1142,3 +1142,7 @@
     [name "Chess-expect!"]
     [to-draw draw-world]
     [on-key handle-key]))
+
+
+; Starts the program
+(main 0)

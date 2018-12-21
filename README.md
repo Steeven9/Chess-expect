@@ -1,4 +1,4 @@
-# PF1 Final project: Chess-expect!
+# Chess-expect! <img src="img/icon.png" width="50">
 
 The idea behind this project is to develop a big-bang chess program which allows you to play against
 a friend or colleague on one machine.
@@ -7,8 +7,10 @@ a friend or colleague on one machine.
 ## Installation guide
 
   * Clone or download the repo
-  * Open Chess-expect!.app (Mac) or Chess-expect!.exe (Windows) from the dist folder
+  * Open Chess-expect! (Mac) or Chess-expect!.exe (Windows) from the dist folder
   * Enjoy!
+
+  You can also directly open chess-expect.rkt with your favorite Racket editor and run it.
 
 
 ## How to play
@@ -17,11 +19,13 @@ Every player moves its cursor with respectively WASD (player 1 - white pieces) a
 (player 2 - black pieces); the spacebar is used to pick up and drop the pieces. The turn ends automatically 
 when a piece gets dropped on a valid tile.
 
-Notes: 
+Notes:
+ 
   * To win, you have to eat the king. Yup. 
   * Castling and "en passant" have been intentionally left out of
      the game to make it harder. 100% intended.
   * You can jump over other pieces, unless you buy the Rules DLC (coming soon)
+
 
 ## Language and libraries
 
